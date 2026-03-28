@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crema — Feed</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .feed-tabs {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 57px;
+      z-index: 9;
+    }
+    .feed-tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .feed-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .brew-card {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .brew-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+    }
+    .brew-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--border);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .brew-username {
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+    }
+    .brew-username:hover { color: var(--accent); }
+    .brew-date { font-size: 0.78rem; color: var(--muted); }
+    .follow-btn {
+      margin-left: auto;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      width: auto;
+    }
+    .follow-btn.following {
+      background: rgba(196,125,42,0.15);
+    }
+    .follow-btn:hover { background: rgba(196,125,42,0.2); }
+    .brew-photo {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      display: block;
+      cursor: pointer;
+    }
+    .brew-photo-placeholder {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      cursor: pointer;
+    }
+    .brew-card-footer {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .brew-style-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(196,125,42,0.1);
+      color: var(--accent);
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .brew-ratings { display: flex; gap: 14px; font-size: 0.82rem; color: var(--muted); }
+    .brew-notes {
+      font-size: 0.88rem;
+      color: var(--text);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    #feedList { padding-bottom: calc(var(--nav-h) + 16px); }
+  </style>
+</head>
+<body>
+
+  <nav class="topnav">
+    <span class="topnav-logo">crema</span>
+    <span></span>
+  </nav>
+
+  <div class="feed-tabs">
+    <div class="feed-tab active" id="tabAll"       onclick="switchTab('all')">All brews</div>
+    <div class="feed-tab"        id="tabFollowing" onclick="switchTab('following')">Following</div>
+  </div>
+
+  <div id="feedList">
+    <div class="loading-wrap"><div class="spinner"></div></div>
+  </div>
+
+  <nav class="bottomnav">
+    <a href="/dashboard.html"><span class="nav-icon">🏠</span>Home</a>
+    <a href="/feed.html" class="active"><span class="nav-icon">🌍</span>Feed</a>
+    <a href="/log.html" class="log-btn"><span>+</span></a>
+    <a href="/library.html"><span class="nav-icon">📚</span>Library</a>
+    <a href="/profile.html"><span class="nav-icon">👤</span>Profile</a>
+  </nav>
+
+  <script type="module">
+    import { supabase, requireAuth } from '/js/auth.js';
+
+    const session  = await requireAuth();
+    const userId   = session.user.id;
+    let   tab      = 'all';
+    let   follows  = new Set(); // IDs the current user follows
+
+    const artEmoji = { Heart:'❤️', Tulip:'🌷', Rosetta:'🌿', Fern:'🌾', Swan:'🦢', 'Free pour':'🎨', Other:'✨' };
+
+    // Load who the current user follows
+    async function loadFollows() {
+      const { data } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', userId);
+      follows = new Set((data || []).map(r => r.following_id));
+    }
+
+    async function loadFeed() {
+      const list = document.getElementById('feedList');
+      list.innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
+
+      let query = supabase
+        .from('coffee_logs')
+        .select('*, profiles(id, username, full_name, avatar_url)')
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (tab === 'following') {
+        const ids = [...follows];
+        if (ids.length === 0) {
+          list.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><p>You're not following anyone yet.<br>Switch to All Brews to discover people.</p></div>`;
+          return;
+        }
+        query = query.in('user_id', ids);
+      }
+
+      const { data: logs, error } = await query;
+      list.innerHTML = '';
+
+      if (error || !logs || logs.length === 0) {
+        list.innerHTML = `<div class="empty-state"><div class="empty-icon">☕</div><p>No brews here yet.</p></div>`;
+        return;
+      }
+
+      logs.forEach(log => renderCard(log, list));
+    }
+
+    function renderCard(log, container) {
+      const profile  = log.profiles || {};
+      const username = profile.username || profile.full_name || 'Barista';
+      const isOwn    = log.user_id === userId;
+      const date     = new Date(log.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+      const emoji    = artEmoji[log.art_style] || '';
+
+      const card = document.createElement('div');
+      card.className = 'brew-card';
+
+      const followingThis = follows.has(log.user_id);
+
+      card.innerHTML = `
+        <div class="brew-card-header">
+          <img class="brew-avatar" src="${esc(profile.avatar_url || '')}" alt=""
+            onerror="this.style.background='var(--border)';this.src=''"
+            data-uid="${esc(log.user_id)}" />
+          <div>
+            <div class="brew-username" data-uid="${esc(log.user_id)}">${esc(username)}</div>
+            <div class="brew-date">${date}</div>
+          </div>
+          ${!isOwn ? `
+            <button class="follow-btn ${followingThis ? 'following' : ''}"
+              data-uid="${esc(log.user_id)}"
+              data-username="${esc(username)}">
+              ${followingThis ? 'Following' : 'Follow'}
+            </button>` : ''}
+        </div>
+        ${log.photo_url
+          ? `<img class="brew-photo" src="${esc(log.photo_url)}" alt="" loading="lazy" data-id="${esc(log.id)}" />`
+          : `<div class="brew-photo-placeholder" data-id="${esc(log.id)}">☕</div>`}
+        <div class="brew-card-footer">
+          ${log.art_style ? `<div><span class="brew-style-badge">${emoji} ${esc(log.art_style)}</span></div>` : ''}
+          ${(log.art_rating || log.flavour_rating) ? `
+            <div class="brew-ratings">
+              ${log.art_rating     ? `<span>🎨 ${log.art_rating}/5</span>` : ''}
+              ${log.flavour_rating ? `<span>☕ ${log.flavour_rating}/5</span>` : ''}
+            </div>` : ''}
+          ${log.notes ? `<div class="brew-notes">${esc(log.notes)}</div>` : ''}
+        </div>`;
+
+      container.appendChild(card);
+
+      // Photo → detail
+      card.querySelectorAll('[data-id]').forEach(el => {
+        el.addEventListener('click', () => window.location.href = `/log-detail.html?id=${el.dataset.id}`);
+      });
+
+      // Follow button
+      const followBtn = card.querySelector('.follow-btn');
+      if (followBtn) {
+        followBtn.addEventListener('click', () => toggleFollow(followBtn, log.user_id));
+      }
+
+      // Username / avatar → public profile (future)
+      card.querySelectorAll('[data-uid]').forEach(el => {
+        if (!el.classList.contains('follow-btn')) {
+          el.style.cursor = 'pointer';
+        }
+      });
+    }
+
+    async function toggleFollow(btn, targetId) {
+      btn.disabled = true;
+      const isFollowing = follows.has(targetId);
+
+      if (isFollowing) {
+        await supabase.from('follows').delete()
+          .eq('follower_id', userId).eq('following_id', targetId);
+        follows.delete(targetId);
+        btn.textContent = 'Follow';
+        btn.classList.remove('following');
+      } else {
+        await supabase.from('follows').insert({ follower_id: userId, following_id: targetId });
+        follows.add(targetId);
+        btn.textContent = 'Following';
+        btn.classList.add('following');
+      }
+      btn.disabled = false;
+    }
+
+    window.switchTab = function(t) {
+      tab = t;
+      document.getElementById('tabAll').classList.toggle('active', t === 'all');
+      document.getElementById('tabFollowing').classList.toggle('active', t === 'following');
+      loadFeed();
+    };
+
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    await loadFollows();
+    await loadFeed();
+  </script>
+</body>
+</html>

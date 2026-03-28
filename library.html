@@ -10,7 +10,7 @@
 
   <nav class="topnav">
     <span class="topnav-logo">Library</span>
-    <img class="topnav-avatar" id="userAvatar" src="" alt="" onerror="this.style.display='none'" />
+    <span></span>
   </nav>
 
   <main class="page" style="padding-left:0;padding-right:0;">
@@ -20,21 +20,11 @@
   </main>
 
   <nav class="bottomnav">
-    <a href="/dashboard.html">
-      <span class="nav-icon">🏠</span>
-      Home
-    </a>
-    <a href="/library.html" class="active">
-      <span class="nav-icon">📚</span>
-      Library
-    </a>
-    <a href="/log.html" class="log-btn">
-      <span>+</span>
-    </a>
-    <a href="/profile.html">
-      <span class="nav-icon">👤</span>
-      Profile
-    </a>
+    <a href="/dashboard.html"><span class="nav-icon">🏠</span>Home</a>
+    <a href="/feed.html"><span class="nav-icon">🌍</span>Feed</a>
+    <a href="/log.html" class="log-btn"><span>+</span></a>
+    <a href="/library.html" class="active"><span class="nav-icon">📚</span>Library</a>
+    <a href="/profile.html"><span class="nav-icon">👤</span>Profile</a>
   </nav>
 
   <script type="module">
@@ -45,7 +35,7 @@
 
     const { data: logs, error } = await supabase
       .from('coffee_logs')
-      .select('id, photo_url, title')
+      .select('id, photo_url, art_style')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -56,28 +46,28 @@
       grid.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1">
           <div class="empty-icon">📷</div>
-          <p>No photos yet.<br>Log your first brew to see it here.</p>
+          <p>No brews logged yet.<br>Tap + to log your first coffee.</p>
         </div>`;
       return;
     }
 
     logs.forEach(log => {
       const item = document.createElement('div');
+      item.addEventListener('click', () => window.location.href = `/log-detail.html?id=${log.id}`);
+
       if (log.photo_url) {
         item.className = 'photo-grid-item';
-        item.innerHTML = `<img src="${escHtml(log.photo_url)}" alt="${escHtml(log.title || '')}" loading="lazy" />`;
+        const img = document.createElement('img');
+        img.src     = log.photo_url;
+        img.alt     = log.art_style || '';
+        img.loading = 'lazy';
+        item.appendChild(img);
       } else {
         item.className = 'photo-grid-placeholder';
         item.textContent = '☕';
       }
       grid.appendChild(item);
     });
-
-    function escHtml(str) {
-      return String(str)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
   </script>
 </body>
 </html>

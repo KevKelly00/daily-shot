@@ -5,6 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Crema — Profile</title>
   <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .profile-stats {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      padding: 16px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .profile-stat { text-align: center; }
+    .profile-stat-num  { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+    .profile-stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    #viewMode, #editMode { display: flex; flex-direction: column; gap: 16px; }
+    #editMode { display: none; }
+
+    .edit-actions { display: flex; gap: 10px; }
+    .edit-actions .btn { flex: 1; }
+  </style>
 </head>
 <body>
 
@@ -14,55 +33,141 @@
   </nav>
 
   <main class="page">
-    <div class="profile-header">
-      <img class="profile-avatar" id="profileAvatar" src="" alt="" onerror="this.style.background='var(--border)'" />
+
+    <div class="profile-header" id="profileHeader">
+      <img class="profile-avatar" id="profileAvatar" src="" alt=""
+        onerror="this.style.background='var(--border)';this.removeAttribute('src')" />
       <div class="profile-name" id="profileName">—</div>
-      <div class="profile-bio"  id="profileEmail" style="color:var(--muted); font-size:0.85rem"></div>
+      <div class="profile-bio"  id="profileBio"></div>
+      <div style="font-size:0.82rem; color:var(--muted)" id="profileEmail"></div>
     </div>
 
-    <div style="margin-top: 24px;">
+    <div class="profile-stats">
+      <div class="profile-stat">
+        <div class="profile-stat-num"  id="statBrews">—</div>
+        <div class="profile-stat-label">Brews</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-num"  id="statFollowers">—</div>
+        <div class="profile-stat-label">Followers</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-num"  id="statFollowing">—</div>
+        <div class="profile-stat-label">Following</div>
+      </div>
+    </div>
+
+    <!-- View mode -->
+    <div id="viewMode">
+      <button class="btn btn-ghost" onclick="startEdit()">Edit profile</button>
       <button class="btn btn-ghost" id="signOutBtn">Sign out</button>
     </div>
+
+    <!-- Edit mode -->
+    <div id="editMode">
+      <div class="form-group">
+        <label>Display name</label>
+        <input class="input" id="editName"     type="text"  placeholder="Your name" />
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input class="input" id="editUsername" type="text"  placeholder="@username" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label>Bio</label>
+        <input class="input" id="editBio"      type="text"  placeholder="Home barista, obsessed with tulips…" />
+      </div>
+      <div class="error-msg" id="editError"></div>
+      <div class="edit-actions">
+        <button class="btn btn-ghost"    onclick="cancelEdit()">Cancel</button>
+        <button class="btn btn-primary"  id="saveBtn" onclick="saveProfile()">Save</button>
+      </div>
+    </div>
+
   </main>
 
   <nav class="bottomnav">
-    <a href="/dashboard.html">
-      <span class="nav-icon">🏠</span>
-      Home
-    </a>
-    <a href="/library.html">
-      <span class="nav-icon">📚</span>
-      Library
-    </a>
-    <a href="/log.html" class="log-btn">
-      <span>+</span>
-    </a>
-    <a href="/profile.html" class="active">
-      <span class="nav-icon">👤</span>
-      Profile
-    </a>
+    <a href="/dashboard.html"><span class="nav-icon">🏠</span>Home</a>
+    <a href="/feed.html"><span class="nav-icon">🌍</span>Feed</a>
+    <a href="/log.html" class="log-btn"><span>+</span></a>
+    <a href="/library.html"><span class="nav-icon">📚</span>Library</a>
+    <a href="/profile.html" class="active"><span class="nav-icon">👤</span>Profile</a>
   </nav>
 
   <script type="module">
     import { supabase, requireAuth, signOut } from '/js/auth.js';
 
     const session = await requireAuth();
-    const user = session.user;
+    const user    = session.user;
+    let profile   = {};
 
     document.getElementById('profileEmail').textContent = user.email || '';
+    document.getElementById('signOutBtn').addEventListener('click', signOut);
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, avatar_url')
-      .eq('id', user.id)
-      .single();
+    async function loadProfile() {
+      const [profileRes, brewsRes, followersRes, followingRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('coffee_logs').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', user.id),
+        supabase.from('follows').select('following_id', { count: 'exact', head: true }).eq('follower_id', user.id),
+      ]);
 
-    if (profile) {
-      document.getElementById('profileName').textContent = profile.full_name || user.email;
+      profile = profileRes.data || {};
+
+      const displayName = profile.full_name || profile.username || user.email;
+      document.getElementById('profileName').textContent   = displayName;
+      document.getElementById('profileBio').textContent    = profile.bio || '';
+      document.getElementById('statBrews').textContent     = brewsRes.count     ?? 0;
+      document.getElementById('statFollowers').textContent = followersRes.count ?? 0;
+      document.getElementById('statFollowing').textContent = followingRes.count ?? 0;
       if (profile.avatar_url) document.getElementById('profileAvatar').src = profile.avatar_url;
     }
 
-    document.getElementById('signOutBtn').addEventListener('click', signOut);
+    window.startEdit = function() {
+      document.getElementById('editName').value     = profile.full_name || '';
+      document.getElementById('editUsername').value = profile.username  || '';
+      document.getElementById('editBio').value      = profile.bio       || '';
+      document.getElementById('viewMode').style.display = 'none';
+      document.getElementById('editMode').style.display = 'flex';
+      document.getElementById('editError').style.display = 'none';
+    };
+
+    window.cancelEdit = function() {
+      document.getElementById('editMode').style.display = 'none';
+      document.getElementById('viewMode').style.display = 'flex';
+    };
+
+    window.saveProfile = async function() {
+      const btn      = document.getElementById('saveBtn');
+      const fullName = document.getElementById('editName').value.trim();
+      const username = document.getElementById('editUsername').value.trim().replace(/^@/, '');
+      const bio      = document.getElementById('editBio').value.trim();
+
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      document.getElementById('editError').style.display = 'none';
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, full_name: fullName || null, username: username || null, bio: bio || null });
+
+      if (error) {
+        const msg = error.message.includes('unique') ? 'That username is already taken.' : error.message;
+        const errEl = document.getElementById('editError');
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Save';
+        return;
+      }
+
+      await loadProfile();
+      cancelEdit();
+      btn.disabled = false;
+      btn.textContent = 'Save';
+    };
+
+    await loadProfile();
   </script>
 </body>
 </html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crema — Brew</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .detail-photo {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      background: var(--surface);
+      display: block;
+    }
+    .detail-photo-placeholder {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+    }
+    .detail-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+    .detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .art-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(196,125,42,0.15);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .detail-date { color: var(--muted); font-size: 0.85rem; }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .detail-field { display: flex; flex-direction: column; gap: 4px; }
+    .detail-field-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .detail-field-value { font-size: 0.95rem; }
+    .stars-display { display: flex; gap: 2px; font-size: 1.1rem; }
+    .detail-notes {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 0.92rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .owner-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .owner-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--border);
+      object-fit: cover;
+    }
+    .owner-name { font-size: 0.9rem; font-weight: 600; flex: 1; }
+  </style>
+</head>
+<body>
+
+  <nav class="topnav">
+    <a id="backBtn" href="/library.html" style="color:var(--accent); font-size:1.5rem; line-height:1; padding:0 4px;">‹</a>
+    <span style="font-weight:600;">Brew</span>
+    <span style="width:28px"></span>
+  </nav>
+
+  <div id="content">
+    <div class="loading-wrap"><div class="spinner"></div></div>
+  </div>
+
+  <nav class="bottomnav">
+    <a href="/dashboard.html"><span class="nav-icon">🏠</span>Home</a>
+    <a href="/feed.html"><span class="nav-icon">🌍</span>Feed</a>
+    <a href="/log.html" class="log-btn"><span>+</span></a>
+    <a href="/library.html" class="active"><span class="nav-icon">📚</span>Library</a>
+    <a href="/profile.html"><span class="nav-icon">👤</span>Profile</a>
+  </nav>
+
+  <script type="module">
+    import { supabase, requireAuth } from '/js/auth.js';
+
+    const session = await requireAuth();
+    const userId  = session.user.id;
+    const logId   = new URLSearchParams(window.location.search).get('id');
+
+    // Set back button to return to wherever the user came from
+    const ref = document.referrer;
+    if (ref.includes('/feed.html')) document.getElementById('backBtn').href = '/feed.html';
+
+    if (!logId) { window.location.href = '/library.html'; }
+
+    const { data: log, error } = await supabase
+      .from('coffee_logs')
+      .select('*, profiles(username, full_name, avatar_url)')
+      .eq('id', logId)
+      .single();
+
+    if (error || !log) { window.location.href = '/library.html'; }
+
+    const isOwner = log.user_id === userId;
+    const date    = new Date(log.created_at).toLocaleDateString('en-GB', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    const artStyleEmojis = {
+      Heart: '❤️', Tulip: '🌷', Rosetta: '🌿', Fern: '🌾',
+      Swan: '🦢', 'Free pour': '🎨', Other: '✨'
+    };
+    const emoji = artStyleEmojis[log.art_style] || '☕';
+
+    function starsHtml(rating) {
+      if (!rating) return '<span style="color:var(--muted)">Not rated</span>';
+      const full  = Math.floor(rating);
+      const half  = rating % 1 >= 0.5 ? 1 : 0;
+      const empty = 5 - full - half;
+      return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty) + ` <span style="color:var(--muted);font-size:0.85rem">${rating}/5</span>`;
+    }
+
+    const profile  = log.profiles || {};
+    const username = profile.username || profile.full_name || 'Barista';
+    const avatar   = profile.avatar_url || '';
+
+    document.getElementById('content').innerHTML = `
+      ${log.photo_url
+        ? `<img class="detail-photo" src="${esc(log.photo_url)}" alt="Brew photo" />`
+        : `<div class="detail-photo-placeholder">☕</div>`}
+
+      <div class="owner-bar">
+        <img class="owner-avatar" src="${esc(avatar)}" alt="" onerror="this.style.display='none'" />
+        <span class="owner-name">${esc(username)}</span>
+        <span class="detail-date">${date}</span>
+      </div>
+
+      <div class="detail-body">
+        ${log.art_style ? `<div><span class="art-badge">${emoji} ${esc(log.art_style)}</span></div>` : ''}
+
+        <div class="detail-grid">
+          <div class="detail-field">
+            <span class="detail-field-label">Beans</span>
+            <span class="detail-field-value">${esc(log.beans || '—')}</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Milk</span>
+            <span class="detail-field-value">${esc(log.milk || '—')}</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Art rating</span>
+            <div class="stars-display" style="font-size:0.95rem">${starsHtml(log.art_rating)}</div>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Flavour rating</span>
+            <div class="stars-display" style="font-size:0.95rem">${starsHtml(log.flavour_rating)}</div>
+          </div>
+        </div>
+
+        ${log.notes ? `
+          <div>
+            <div class="detail-field-label" style="margin-bottom:8px">Notes</div>
+            <div class="detail-notes">${esc(log.notes)}</div>
+          </div>` : ''}
+
+        ${isOwner ? `
+          <button class="btn btn-danger" id="deleteBtn" style="margin-top:8px">Delete brew</button>` : ''}
+      </div>`;
+
+    if (isOwner) {
+      document.getElementById('deleteBtn').addEventListener('click', async () => {
+        if (!confirm('Delete this brew? This can\'t be undone.')) return;
+        const btn = document.getElementById('deleteBtn');
+        btn.disabled = true;
+        btn.textContent = 'Deleting…';
+
+        // Delete photo from storage if present
+        if (log.photo_url) {
+          const path = log.photo_url.split('/coffee-photos/')[1];
+          if (path) await supabase.storage.from('coffee-photos').remove([path]);
+        }
+
+        const { error } = await supabase.from('coffee_logs').delete().eq('id', logId);
+        if (error) { alert('Could not delete. Please try again.'); btn.disabled = false; btn.textContent = 'Delete brew'; return; }
+        window.location.href = '/library.html';
+      });
+    }
+
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
