@@ -115,7 +115,7 @@
 
     if (error || !log) { window.location.href = '/library.html'; return; }
 
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
       .from('profiles')
       .select('username, full_name, avatar_url')
       .eq('id', log.user_id)
@@ -140,9 +140,8 @@
       return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty) + ` <span style="color:var(--muted);font-size:0.85rem">${rating}/5</span>`;
     }
 
-    const profile  = log.profiles || {};
-    const username = profile.username || profile.full_name || 'Barista';
-    const avatar   = profile.avatar_url || '';
+    const username = profileData?.username || profileData?.full_name || 'Barista';
+    const avatar   = profileData?.avatar_url || '';
 
     document.getElementById('content').innerHTML = `
       ${log.photo_url
