@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crema — Log a Brew</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <nav class="topnav">
+    <a href="/dashboard.html" style="color:var(--accent); font-size:1.4rem; line-height:1;">‹</a>
+    <span class="topnav-logo" style="font-size:1rem; color:var(--text)">Log a brew</span>
+    <span style="width:24px"></span>
+  </nav>
+
+  <main class="page">
+    <p style="color:var(--muted); text-align:center; padding:40px 0;">
+      Coming soon — brew logging form
+    </p>
+  </main>
+
+  <nav class="bottomnav">
+    <a href="/dashboard.html">
+      <span class="nav-icon">🏠</span>
+      Home
+    </a>
+    <a href="/library.html">
+      <span class="nav-icon">📚</span>
+      Library
+    </a>
+    <a href="/log.html" class="log-btn active">
+      <span>+</span>
+    </a>
+    <a href="/profile.html">
+      <span class="nav-icon">👤</span>
+      Profile
+    </a>
+  </nav>
+
+  <script type="module">
+    import { requireAuth } from '/js/auth.js';
+    await requireAuth();
+  </script>
+</body>
+</html>

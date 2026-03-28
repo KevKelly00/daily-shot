@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crema — Profile</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <nav class="topnav">
+    <span class="topnav-logo">Profile</span>
+    <span></span>
+  </nav>
+
+  <main class="page">
+    <div class="profile-header">
+      <img class="profile-avatar" id="profileAvatar" src="" alt="" onerror="this.style.background='var(--border)'" />
+      <div class="profile-name" id="profileName">—</div>
+      <div class="profile-bio"  id="profileEmail" style="color:var(--muted); font-size:0.85rem"></div>
+    </div>
+
+    <div style="margin-top: 24px;">
+      <button class="btn btn-ghost" id="signOutBtn">Sign out</button>
+    </div>
+  </main>
+
+  <nav class="bottomnav">
+    <a href="/dashboard.html">
+      <span class="nav-icon">🏠</span>
+      Home
+    </a>
+    <a href="/library.html">
+      <span class="nav-icon">📚</span>
+      Library
+    </a>
+    <a href="/log.html" class="log-btn">
+      <span>+</span>
+    </a>
+    <a href="/profile.html" class="active">
+      <span class="nav-icon">👤</span>
+      Profile
+    </a>
+  </nav>
+
+  <script type="module">
+    import { supabase, requireAuth, signOut } from '/js/auth.js';
+
+    const session = await requireAuth();
+    const user = session.user;
+
+    document.getElementById('profileEmail').textContent = user.email || '';
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('id', user.id)
+      .single();
+
+    if (profile) {
+      document.getElementById('profileName').textContent = profile.full_name || user.email;
+      if (profile.avatar_url) document.getElementById('profileAvatar').src = profile.avatar_url;
+    }
+
+    document.getElementById('signOutBtn').addEventListener('click', signOut);
+  </script>
+</body>
+</html>

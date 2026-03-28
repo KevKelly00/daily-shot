@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crema — Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- Top nav -->
+  <nav class="topnav">
+    <span class="topnav-logo">crema</span>
+    <img class="topnav-avatar" id="userAvatar" src="" alt="Profile" onerror="this.style.display='none'" onclick="window.location.href='/profile.html'" />
+  </nav>
+
+  <!-- Content -->
+  <main class="page">
+
+    <!-- Greeting -->
+    <h2 style="margin-bottom:20px; color:var(--muted); font-weight:400;">
+      Hey <strong id="userName" style="color:var(--text)">Barista</strong> ☕
+    </h2>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total brews</div>
+        <div class="stat-value" id="statTotal"><div class="spinner"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">This week</div>
+        <div class="stat-value" id="statWeek"><div class="spinner"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg rating</div>
+        <div class="stat-value" id="statRating"><div class="spinner"></div></div>
+        <div class="stat-sub">out of 5</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Fav method</div>
+        <div class="stat-value" id="statMethod" style="font-size:1.1rem; padding-top:6px"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Recent brews -->
+    <div class="section-header">
+      <h2>Recent brews</h2>
+      <a href="/library.html">See all</a>
+    </div>
+    <div class="log-list" id="recentLogs">
+      <div class="loading-wrap"><div class="spinner"></div></div>
+    </div>
+
+  </main>
+
+  <!-- Bottom nav -->
+  <nav class="bottomnav">
+    <a href="/dashboard.html" class="active">
+      <span class="nav-icon">🏠</span>
+      Home
+    </a>
+    <a href="/library.html">
+      <span class="nav-icon">📚</span>
+      Library
+    </a>
+    <a href="/log.html" class="log-btn">
+      <span>+</span>
+    </a>
+    <a href="/profile.html">
+      <span class="nav-icon">👤</span>
+      Profile
+    </a>
+  </nav>
+
+  <script type="module">
+    import { loadDashboard } from '/js/dashboard.js';
+    loadDashboard();
+  </script>
+</body>
+</html>
