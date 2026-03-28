@@ -1,10 +1,5 @@
 import { supabase, requireAuth } from './auth.js';
-
-function esc(str) {
-  return String(str ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+import { esc } from './utils.js';
 
 function starsHtml(rating) {
   if (!rating) return '<span style="color:var(--muted)">Not rated</span>';
@@ -14,11 +9,6 @@ function starsHtml(rating) {
   return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty)
     + ` <span style="color:var(--muted);font-size:0.85rem">${rating}/5</span>`;
 }
-
-const artStyleEmojis = {
-  Heart: '❤️', Tulip: '🌷', Rosetta: '🌿', Fern: '🌾',
-  Swan: '🦢', 'Free pour': '🎨', Other: '✨'
-};
 
 export async function loadDetail() {
   const content = document.getElementById('content');
@@ -31,7 +21,6 @@ export async function loadDetail() {
     const logId = new URLSearchParams(window.location.search).get('id');
     if (!logId) { window.location.href = '/library.html'; return; }
 
-    // Back button — go to feed if referred from there
     if (document.referrer.includes('/feed.html')) {
       document.getElementById('backBtn').href = '/feed.html';
     }
@@ -53,7 +42,6 @@ export async function loadDetail() {
     const isOwner  = log.user_id === userId;
     const username = profileData?.username || profileData?.full_name || 'Barista';
     const avatar   = profileData?.avatar_url || '';
-    const emoji    = artStyleEmojis[log.art_style] || '☕';
     const date     = new Date(log.created_at).toLocaleDateString('en-GB', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
@@ -71,7 +59,7 @@ export async function loadDetail() {
       </div>
 
       <div class="detail-body">
-        ${log.art_style ? `<div><span class="art-badge">${emoji} ${esc(log.art_style)}</span></div>` : ''}
+        ${log.art_style ? `<div><span class="art-badge">${esc(log.art_style)}</span></div>` : ''}
 
         <div class="detail-grid">
           <div class="detail-field">
@@ -110,7 +98,10 @@ export async function loadDetail() {
 
         if (log.photo_url) {
           const path = log.photo_url.split('/coffee-photos/')[1];
-          if (path) await supabase.storage.from('coffee-photos').remove([path]);
+          if (path) {
+            const { error: storageErr } = await supabase.storage.from('coffee-photos').remove([path]);
+            if (storageErr) console.warn('Storage delete failed (orphaned photo):', storageErr.message);
+          }
         }
 
         const { error: delError } = await supabase.from('coffee_logs').delete().eq('id', logId);

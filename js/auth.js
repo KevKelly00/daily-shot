@@ -21,10 +21,13 @@ export async function requireGuest() {
   if (session) window.location.href = '/dashboard.html';
 }
 
-// Redirect to login if not logged in
+// Redirect to login if not logged in — never resolves if unauthenticated
 export async function requireAuth() {
   const session = await getSession();
-  if (!session) window.location.href = '/index.html';
+  if (!session) {
+    window.location.href = '/index.html';
+    return new Promise(() => {});
+  }
   return session;
 }
 
