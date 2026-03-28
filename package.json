@@ -2,8 +2,5 @@
   "name": "crema",
   "version": "1.0.0",
   "private": true,
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.27.0",
-    "@supabase/supabase-js": "^2.39.0"
-  }
+  "type": "module"
 }
