@@ -5,42 +5,377 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Crema — Log a Brew</title>
   <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    /* ── Photo upload ── */
+    .photo-upload {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      border-radius: var(--radius);
+      border: 2px dashed var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .photo-upload:hover { border-color: var(--accent); }
+    .photo-upload input { display: none; }
+    .photo-upload .upload-hint { color: var(--muted); font-size: 0.9rem; }
+    .photo-upload .upload-icon { font-size: 2rem; }
+    #previewImg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+    .photo-change-btn {
+      position: absolute;
+      bottom: 10px; right: 10px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: none;
+    }
+
+    /* ── Chips ── */
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .chip.selected {
+      border-color: var(--accent);
+      background: rgba(196,125,42,0.15);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ── Half-star rating ── */
+    .star-row {
+      display: flex;
+      gap: 4px;
+    }
+    .star-wrap {
+      position: relative;
+      width: 36px; height: 36px;
+      cursor: pointer;
+    }
+    .star-wrap svg {
+      width: 36px; height: 36px;
+    }
+    .star-wrap .half-l,
+    .star-wrap .half-r {
+      position: absolute;
+      top: 0; height: 100%;
+      width: 50%;
+      z-index: 1;
+    }
+    .star-wrap .half-l { left: 0; }
+    .star-wrap .half-r { right: 0; }
+    .rating-display {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-left: 8px;
+      align-self: center;
+    }
+
+    /* ── Form sections ── */
+    .log-form { display: flex; flex-direction: column; gap: 24px; }
+    .form-section { display: flex; flex-direction: column; gap: 10px; }
+    .form-section label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    textarea.input { resize: none; min-height: 90px; }
+  </style>
 </head>
 <body>
 
   <nav class="topnav">
-    <a href="/dashboard.html" style="color:var(--accent); font-size:1.4rem; line-height:1;">‹</a>
-    <span class="topnav-logo" style="font-size:1rem; color:var(--text)">Log a brew</span>
-    <span style="width:24px"></span>
+    <a href="/dashboard.html" style="color:var(--accent); font-size:1.5rem; line-height:1; padding: 0 4px;">‹</a>
+    <span style="font-weight:600;">Log a brew</span>
+    <span style="width:28px"></span>
   </nav>
 
   <main class="page">
-    <p style="color:var(--muted); text-align:center; padding:40px 0;">
-      Coming soon — brew logging form
-    </p>
+    <form class="log-form" id="logForm" onsubmit="handleSubmit(event)">
+
+      <!-- Photo -->
+      <div class="form-section">
+        <label>Photo</label>
+        <div class="photo-upload" id="photoUpload" onclick="document.getElementById('photoInput').click()">
+          <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)" />
+          <span class="upload-icon">📷</span>
+          <span class="upload-hint">Tap to add a photo</span>
+          <img id="previewImg" alt="Preview" />
+          <button type="button" class="photo-change-btn" id="changePhotoBtn"
+            onclick="event.stopPropagation(); document.getElementById('photoInput').click()">
+            Change
+          </button>
+        </div>
+      </div>
+
+      <!-- Art style -->
+      <div class="form-section">
+        <label>Art style</label>
+        <div class="chips" id="artStyleChips">
+          <div class="chip" data-value="Heart">❤️ Heart</div>
+          <div class="chip" data-value="Tulip">🌷 Tulip</div>
+          <div class="chip" data-value="Rosetta">🌿 Rosetta</div>
+          <div class="chip" data-value="Fern">🌾 Fern</div>
+          <div class="chip" data-value="Free pour">🎨 Free pour</div>
+          <div class="chip" data-value="Other">✨ Other</div>
+        </div>
+      </div>
+
+      <!-- Beans -->
+      <div class="form-section">
+        <label>Beans</label>
+        <input class="input" type="text" id="beansInput" placeholder="e.g. Has Bean, Ethiopia Yirgacheffe" />
+      </div>
+
+      <!-- Milk -->
+      <div class="form-section">
+        <label>Milk</label>
+        <div class="chips" id="milkChips">
+          <div class="chip" data-value="Whole">Whole</div>
+          <div class="chip" data-value="Semi-skimmed">Semi-skimmed</div>
+          <div class="chip" data-value="Oat">Oat</div>
+          <div class="chip" data-value="Soy">Soy</div>
+          <div class="chip" data-value="Almond">Almond</div>
+          <div class="chip" data-value="Other">Other</div>
+        </div>
+      </div>
+
+      <!-- Art rating -->
+      <div class="form-section">
+        <label>Art rating</label>
+        <div style="display:flex; align-items:center;">
+          <div class="star-row" id="artStars"></div>
+          <span class="rating-display" id="artRatingDisplay">—</span>
+        </div>
+      </div>
+
+      <!-- Flavour rating -->
+      <div class="form-section">
+        <label>Flavour rating</label>
+        <div style="display:flex; align-items:center;">
+          <div class="star-row" id="flavourStars"></div>
+          <span class="rating-display" id="flavourRatingDisplay">—</span>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-section">
+        <label>Notes</label>
+        <textarea class="input" id="notesInput" placeholder="What went well? What would you do differently?"></textarea>
+      </div>
+
+      <!-- Error -->
+      <div class="error-msg" id="errorMsg"></div>
+
+      <button class="btn btn-primary" type="submit" id="submitBtn">Save brew</button>
+
+    </form>
   </main>
 
-  <nav class="bottomnav">
-    <a href="/dashboard.html">
-      <span class="nav-icon">🏠</span>
-      Home
-    </a>
-    <a href="/library.html">
-      <span class="nav-icon">📚</span>
-      Library
-    </a>
-    <a href="/log.html" class="log-btn active">
-      <span>+</span>
-    </a>
-    <a href="/profile.html">
-      <span class="nav-icon">👤</span>
-      Profile
-    </a>
-  </nav>
-
   <script type="module">
-    import { requireAuth } from '/js/auth.js';
-    await requireAuth();
+    import { supabase, requireAuth } from '/js/auth.js';
+
+    const session = await requireAuth();
+    const userId  = session.user.id;
+
+    // ── State ──────────────────────────────────────────────────────────────────
+    let selectedPhoto = null;
+    let artStyle      = null;
+    let milkType      = null;
+    let artRating     = null;
+    let flavourRating = null;
+
+    // ── Photo ──────────────────────────────────────────────────────────────────
+    window.handlePhoto = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) { showError('Photo must be under 10 MB.'); return; }
+      selectedPhoto = file;
+      const preview = document.getElementById('previewImg');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+      document.getElementById('changePhotoBtn').style.display = 'block';
+      document.querySelector('.upload-icon').style.display = 'none';
+      document.querySelector('.upload-hint').style.display = 'none';
+    };
+
+    // ── Chips ──────────────────────────────────────────────────────────────────
+    function initChips(containerId, onSelect) {
+      document.getElementById(containerId).querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          document.getElementById(containerId).querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+          chip.classList.add('selected');
+          onSelect(chip.dataset.value);
+        });
+      });
+    }
+
+    initChips('artStyleChips', v => { artStyle = v; });
+    initChips('milkChips',     v => { milkType = v; });
+
+    // ── Half-star rating ───────────────────────────────────────────────────────
+    function buildStars(containerId, displayId, onRate) {
+      const container = document.getElementById(containerId);
+      let current = null;
+
+      for (let i = 1; i <= 5; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'star-wrap';
+        wrap.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="var(--border)" xmlns="http://www.w3.org/2000/svg">
+            <path id="star-${containerId}-${i}" d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l7.1-1.01z"/>
+          </svg>
+          <div class="half-l" data-star="${i}" data-half="0.5"></div>
+          <div class="half-r" data-star="${i}" data-half="1"></div>`;
+        container.appendChild(wrap);
+      }
+
+      container.addEventListener('click', e => {
+        const half = e.target.dataset.half;
+        const star = e.target.dataset.star;
+        if (!half || !star) return;
+        const value = parseFloat(star) - 1 + parseFloat(half);
+        current = value;
+        onRate(value);
+        renderStars(containerId, displayId, value);
+      });
+
+      // Hover preview
+      container.addEventListener('mouseover', e => {
+        const half = e.target.dataset.half;
+        const star = e.target.dataset.star;
+        if (!half || !star) return;
+        renderStars(containerId, displayId, parseFloat(star) - 1 + parseFloat(half), true);
+      });
+      container.addEventListener('mouseleave', () => {
+        renderStars(containerId, displayId, current, false);
+      });
+    }
+
+    function renderStars(containerId, displayId, value, preview = false) {
+      const container = document.getElementById(containerId);
+      const display   = document.getElementById(displayId);
+      const paths     = container.querySelectorAll('path');
+
+      paths.forEach((path, i) => {
+        const starNum  = i + 1;
+        const filled   = value >= starNum ? 1 : value >= starNum - 0.5 ? 0.5 : 0;
+        const color    = preview ? 'rgba(196,125,42,0.5)' : 'var(--accent)';
+
+        if (filled === 1) {
+          path.setAttribute('fill', value !== null ? color : 'var(--border)');
+        } else if (filled === 0.5) {
+          // Half star using linearGradient trick via fill with a split
+          path.setAttribute('fill', `url(#half-${containerId}-${starNum})`);
+          ensureHalfGradient(container, containerId, starNum, color);
+        } else {
+          path.setAttribute('fill', 'var(--border)');
+        }
+      });
+
+      display.textContent = value !== null ? `${value} / 5` : '—';
+    }
+
+    function ensureHalfGradient(container, containerId, starNum, color) {
+      const svgEl = container.querySelectorAll('svg')[starNum - 1];
+      const gradId = `half-${containerId}-${starNum}`;
+      if (!svgEl.querySelector(`#${gradId}`)) {
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        defs.innerHTML = `
+          <linearGradient id="${gradId}" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="50%" stop-color="${color}"/>
+            <stop offset="50%" stop-color="var(--border)"/>
+          </linearGradient>`;
+        svgEl.prepend(defs);
+      }
+    }
+
+    buildStars('artStars',     'artRatingDisplay',     v => { artRating = v; });
+    buildStars('flavourStars', 'flavourRatingDisplay', v => { flavourRating = v; });
+
+    // ── Submit ─────────────────────────────────────────────────────────────────
+    window.handleSubmit = async function(e) {
+      e.preventDefault();
+      hideError();
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        // Upload photo if provided
+        let photoUrl = null;
+        if (selectedPhoto) {
+          const ext  = selectedPhoto.name.split('.').pop() || 'jpg';
+          const path = `${userId}/${Date.now()}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from('coffee-photos')
+            .upload(path, selectedPhoto, { contentType: selectedPhoto.type || 'image/jpeg' });
+          if (uploadError) throw uploadError;
+          const { data: { publicUrl } } = supabase.storage.from('coffee-photos').getPublicUrl(path);
+          photoUrl = publicUrl;
+        }
+
+        const { error } = await supabase.from('coffee_logs').insert({
+          user_id:        userId,
+          art_style:      artStyle,
+          beans:          document.getElementById('beansInput').value.trim() || null,
+          milk:           milkType,
+          art_rating:     artRating,
+          flavour_rating: flavourRating,
+          notes:          document.getElementById('notesInput').value.trim() || null,
+          photo_url:      photoUrl,
+        });
+
+        if (error) throw error;
+        window.location.href = '/dashboard.html';
+
+      } catch (err) {
+        showError(err.message || 'Something went wrong. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Save brew';
+      }
+    };
+
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+    function hideError() {
+      document.getElementById('errorMsg').style.display = 'none';
+    }
   </script>
 </body>
 </html>
