@@ -26,9 +26,62 @@
 
     #viewMode, #editMode { display: flex; flex-direction: column; gap: 16px; }
     #editMode { display: none; }
-
     .edit-actions { display: flex; gap: 10px; }
     .edit-actions .btn { flex: 1; }
+
+    .section-heading {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .beans-section {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .bean-list { display: flex; flex-direction: column; gap: 8px; }
+    .bean-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+    }
+    .bean-archive-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 0 0 0 12px;
+      line-height: 1;
+    }
+    .bean-archive-btn:hover { color: var(--text); }
+    .bean-add-row {
+      display: flex;
+      gap: 8px;
+    }
+    .bean-add-row .input { flex: 1; }
+    .bean-add-btn {
+      padding: 0 16px;
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .bean-add-btn:disabled { opacity: 0.5; }
+    .bean-empty { font-size: 0.88rem; color: var(--muted); }
   </style>
 </head>
 <body>
@@ -87,6 +140,18 @@
       <div class="edit-actions">
         <button class="btn btn-ghost"    onclick="cancelEdit()">Cancel</button>
         <button class="btn btn-primary"  id="saveBtn" onclick="saveProfile()">Save</button>
+      </div>
+    </div>
+
+    <!-- Bean inventory -->
+    <div class="beans-section">
+      <div class="section-heading">Bean inventory</div>
+      <div class="bean-list" id="beanList">
+        <div class="bean-empty">Loading…</div>
+      </div>
+      <div class="bean-add-row">
+        <input class="input" id="beanInput" type="text" placeholder="e.g. Has Bean — Ethiopia Yirgacheffe" />
+        <button class="bean-add-btn" id="beanAddBtn" onclick="addBean()">Add</button>
       </div>
     </div>
 

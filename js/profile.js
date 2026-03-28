@@ -72,9 +72,73 @@ export async function loadProfile() {
       btn.textContent = 'Save';
     };
 
+    // ── Bean inventory ─────────────────────────────────────────────────────────
+    async function fetchBeans() {
+      const { data: beans } = await supabase
+        .from('beans')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('name');
+
+      const list = document.getElementById('beanList');
+      list.innerHTML = '';
+
+      if (!beans || beans.length === 0) {
+        list.innerHTML = '<div class="bean-empty">No beans yet — add your current bag below.</div>';
+        return;
+      }
+
+      beans.forEach(bean => {
+        const item = document.createElement('div');
+        item.className = 'bean-item';
+        item.dataset.id = bean.id;
+        item.innerHTML = `
+          <span>${escHtml(bean.name)}</span>
+          <button class="bean-archive-btn" title="Archive">×</button>`;
+        item.querySelector('.bean-archive-btn').addEventListener('click', () => archiveBean(bean.id));
+        list.appendChild(item);
+      });
+    }
+
+    async function archiveBean(id) {
+      const item = document.querySelector(`.bean-item[data-id="${id}"]`);
+      if (item) item.style.opacity = '0.4';
+      await supabase.from('beans').update({ is_active: false }).eq('id', id);
+      await fetchBeans();
+    }
+
+    window.addBean = async function() {
+      const input = document.getElementById('beanInput');
+      const btn   = document.getElementById('beanAddBtn');
+      const name  = input.value.trim();
+      if (!name) return;
+
+      btn.disabled = true;
+      const { error } = await supabase.from('beans').insert({ user_id: user.id, name });
+      btn.disabled = false;
+
+      if (!error) {
+        input.value = '';
+        await fetchBeans();
+      }
+    };
+
+    // Allow pressing Enter to add a bean
+    document.getElementById('beanInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); window.addBean(); }
+    });
+
     await fetchProfile();
+    await fetchBeans();
 
   } catch (err) {
     console.error('Profile load error:', err);
   }
+}
+
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

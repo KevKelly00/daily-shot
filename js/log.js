@@ -54,6 +54,34 @@ export async function loadLog() {
     initChips('artStyleChips', v => { artStyle = v; });
     initChips('milkChips',     v => { milkType = v; });
 
+    // ── Bean inventory dropdown ────────────────────────────────────────────────
+    const { data: beans } = await supabase
+      .from('beans')
+      .select('id, name')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('name');
+
+    if (beans && beans.length > 0) {
+      const select = document.getElementById('beansSelect');
+      const input  = document.getElementById('beansInput');
+
+      select.innerHTML = '<option value="">Select a bean…</option>'
+        + beans.map(b => `<option value="${b.name.replace(/"/g, '&quot;')}">${b.name.replace(/</g, '&lt;')}</option>`).join('')
+        + '<option value="__other__">Other (type manually)…</option>';
+
+      select.style.display = 'block';
+      input.style.display  = 'none';
+
+      select.addEventListener('change', () => {
+        if (select.value === '__other__') {
+          select.style.display = 'none';
+          input.style.display  = 'block';
+          input.focus();
+        }
+      });
+    }
+
     // ── Half-star rating ───────────────────────────────────────────────────────
     function buildStars(containerId, displayId, onRate) {
       const container = document.getElementById(containerId);
@@ -166,7 +194,10 @@ export async function loadLog() {
 
         if (logType === 'home') {
           row.art_style = artStyle;
-          row.beans     = document.getElementById('beansInput').value.trim() || null;
+          const select  = document.getElementById('beansSelect');
+          const input   = document.getElementById('beansInput');
+          const beansVal = select.style.display !== 'none' ? select.value : input.value.trim();
+          row.beans     = (beansVal && beansVal !== '__other__') ? beansVal : (input.value.trim() || null);
           row.milk      = milkType;
         } else {
           row.cafe_name     = document.getElementById('cafeNameInput').value.trim() || null;
