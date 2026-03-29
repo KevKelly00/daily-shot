@@ -125,9 +125,21 @@ export async function loadDetail() {
               <div class="detail-notes">${esc(currentLog.notes)}</div>
             </div>` : ''}
 
-          ${aiSectionHtml(currentLog, isOwner)}
-
-          ${isOwner ? `<button class="btn btn-danger" id="deleteBtn">Delete brew</button>` : ''}
+          ${(() => {
+            const aiHtml = aiSectionHtml(currentLog, isOwner);
+            const trashBtn = `
+              <button class="btn-delete" id="deleteBtn" title="Delete brew">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                </svg>
+              </button>`;
+            if (isOwner && aiHtml) {
+              return `<div style="display:flex;gap:8px;align-items:stretch"><div style="flex:1">${aiHtml}</div>${trashBtn}</div>`;
+            }
+            if (isOwner) return trashBtn;
+            return aiHtml;
+          })()}
         </div>`;
 
       // Owner bar → profile

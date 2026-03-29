@@ -27,7 +27,22 @@
       justify-content: center;
       font-size: 4rem;
     }
-    .detail-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .detail-body { padding: 14px 16px calc(var(--nav-h) + 24px); display: flex; flex-direction: column; gap: 12px; }
+    .btn-delete {
+      flex-shrink: 0;
+      width: 44px;
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s;
+    }
+    .btn-delete:hover { opacity: 0.85; }
+    .btn-delete:disabled { opacity: 0.4; cursor: not-allowed; }
     .art-badge {
       display: inline-flex;
       align-items: center;
