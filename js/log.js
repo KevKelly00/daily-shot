@@ -60,9 +60,19 @@ export async function loadLog() {
       });
     }
 
-    initChips('artStyleChips',   v => { artStyle    = v; });
-    initChips('milkChips',       v => { milkType    = v; });
-    initChips('drinkOrderChips', v => { drinkOrder  = v; });
+    initChips('artStyleChips',   v => { artStyle   = v; });
+    initChips('milkChips',       v => { milkType   = v; });
+    initChips('drinkOrderChips', v => {
+      drinkOrder = v;
+      const otherInput = document.getElementById('drinkOrderOther');
+      if (v === 'Other') {
+        otherInput.style.display = 'block';
+        otherInput.focus();
+      } else {
+        otherInput.style.display = 'none';
+        otherInput.value = '';
+      }
+    });
 
     // ── Bean inventory dropdowns ───────────────────────────────────────────────
     const { data: beans } = await supabase
@@ -231,7 +241,8 @@ export async function loadLog() {
           row.flavour_rating = flavourRating;
           row.cafe_name      = document.getElementById('cafeNameInput').value.trim() || null;
           row.cafe_location  = document.getElementById('cafeLocationInput').value.trim() || null;
-          row.drink_order    = drinkOrder || null;
+          const otherVal     = document.getElementById('drinkOrderOther').value.trim();
+          row.drink_order    = drinkOrder === 'Other' ? (otherVal || 'Other') : (drinkOrder || null);
         } else if (logType === 'beans') {
           const opt = newBagSelect.options[newBagSelect.selectedIndex];
           if (!opt || !opt.dataset.id) { showError('Please select a bean from your inventory.'); btn.disabled = false; btn.textContent = 'Save brew'; return; }
