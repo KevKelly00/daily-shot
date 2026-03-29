@@ -28,14 +28,26 @@ export async function loadProfile() {
       if (profile.avatar_url) document.getElementById('profileAvatar').src = profile.avatar_url;
     }
 
+    let pendingAvatarFile = null;
+
     window.startEdit = function() {
       document.getElementById('editName').value     = profile.full_name || '';
       document.getElementById('editUsername').value = profile.username  || '';
       document.getElementById('editBio').value      = profile.bio       || '';
+      const editAvatar = document.getElementById('editAvatar');
+      if (editAvatar) editAvatar.src = profile.avatar_url || '';
+      pendingAvatarFile = null;
       document.getElementById('viewMode').style.display = 'none';
       document.getElementById('editMode').style.display = 'flex';
       document.getElementById('editError').style.display = 'none';
     };
+
+    document.getElementById('avatarInput').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      pendingAvatarFile = file;
+      document.getElementById('editAvatar').src = URL.createObjectURL(file);
+    });
 
     window.cancelEdit = function() {
       document.getElementById('editMode').style.display = 'none';
@@ -52,9 +64,28 @@ export async function loadProfile() {
       btn.textContent = 'Saving…';
       document.getElementById('editError').style.display = 'none';
 
+      let avatarUrl = profile.avatar_url || null;
+      if (pendingAvatarFile) {
+        const ext  = pendingAvatarFile.name.split('.').pop() || 'jpg';
+        const path = `${user.id}/avatar.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from('avatars')
+          .upload(path, pendingAvatarFile, { upsert: true, contentType: pendingAvatarFile.type });
+        if (uploadErr) {
+          const errEl = document.getElementById('editError');
+          errEl.textContent = 'Photo upload failed. Try again.';
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Save';
+          return;
+        }
+        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+        avatarUrl = publicUrl;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, full_name: fullName || null, username: username || null, bio: bio || null });
+        .upsert({ id: user.id, full_name: fullName || null, username: username || null, bio: bio || null, avatar_url: avatarUrl });
 
       if (error) {
         const msg = error.message.includes('unique') ? 'That username is already taken.' : error.message;
