@@ -142,6 +142,12 @@ export async function loadDetail() {
           })()}
         </div>
 
+        ${currentLog.log_type !== 'beans' ? `
+        <div class="community-section" id="communitySection">
+          <div class="your-rating-label">Community rating</div>
+          <div id="communityRatingContent"><div class="loading-wrap" style="padding:8px 0"><div class="spinner"></div></div></div>
+        </div>` : ''}
+
         <div class="comments-section" id="commentsSection">
           <div class="comments-label">Comments</div>
           <div id="commentsList"><div class="loading-wrap" style="padding:16px 0"><div class="spinner"></div></div></div>
@@ -233,6 +239,106 @@ export async function loadDetail() {
       }
     }
 
+    async function loadCommunityRating() {
+      const el = document.getElementById('communityRatingContent');
+      if (!el) return;
+
+      const { data: ratings } = await supabase
+        .from('ratings')
+        .select('user_id, score')
+        .eq('log_id', logId);
+
+      const myRating = (ratings || []).find(r => r.user_id === userId);
+      const count    = (ratings || []).length;
+      const avg      = count
+        ? ((ratings.reduce((s, r) => s + parseFloat(r.score), 0)) / count).toFixed(1)
+        : null;
+
+      const canRate = !isOwner;
+
+      el.innerHTML = `
+        ${avg ? `<div class="community-avg">${avg} <span class="community-avg-sub">/ 5 &nbsp;·&nbsp; ${count} rating${count !== 1 ? 's' : ''}</span></div>` : `<div class="your-rating-value">No ratings yet.</div>`}
+        ${canRate ? `
+          <div>
+            <div class="your-rating-label" style="margin-bottom:6px">${myRating ? 'Your rating' : 'Rate this brew'}</div>
+            <div class="community-stars" id="communityStars"></div>
+            <div class="your-rating-value" id="communityRatingDisplay" style="margin-top:4px">${myRating ? `${myRating.score} / 5` : '—'}</div>
+            <button class="btn-rate" id="submitRatingBtn" style="margin-top:8px" ${!myRating ? '' : ''}>
+              ${myRating ? 'Update rating' : 'Submit rating'}
+            </button>
+          </div>` : ''}`;
+
+      if (!canRate) return;
+
+      let selectedScore = myRating ? parseFloat(myRating.score) : null;
+      const starsEl    = document.getElementById('communityStars');
+      const displayEl  = document.getElementById('communityRatingDisplay');
+      const submitBtn  = document.getElementById('submitRatingBtn');
+
+      // Build star picker
+      for (let i = 1; i <= 5; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'star-wrap';
+        wrap.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="var(--border)" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l7.1-1.01z"/>
+          </svg>
+          <div class="half-l" data-star="${i}" data-half="0.5"></div>
+          <div class="half-r" data-star="${i}" data-half="1"></div>`;
+        starsEl.appendChild(wrap);
+      }
+
+      function paintStars(value) {
+        starsEl.querySelectorAll('path').forEach((path, i) => {
+          const n      = i + 1;
+          const filled = value >= n ? 1 : value >= n - 0.5 ? 0.5 : 0;
+          if (filled === 1) {
+            path.setAttribute('fill', 'var(--accent)');
+          } else if (filled === 0.5) {
+            const gradId = `cr-half-${n}`;
+            let svg = starsEl.querySelectorAll('svg')[i];
+            if (!svg.querySelector(`#${gradId}`)) {
+              const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+              defs.innerHTML = `<linearGradient id="${gradId}" x1="0" x2="1" y1="0" y2="0"><stop offset="50%" stop-color="var(--accent)"/><stop offset="50%" stop-color="var(--border)"/></linearGradient>`;
+              svg.prepend(defs);
+            }
+            path.setAttribute('fill', `url(#${gradId})`);
+          } else {
+            path.setAttribute('fill', 'var(--border)');
+          }
+        });
+        displayEl.textContent = value !== null ? `${value} / 5` : '—';
+      }
+
+      if (selectedScore) paintStars(selectedScore);
+
+      starsEl.addEventListener('click', e => {
+        const half = e.target.dataset.half;
+        const star = e.target.dataset.star;
+        if (!half || !star) return;
+        selectedScore = parseFloat(star) - 1 + parseFloat(half);
+        paintStars(selectedScore);
+      });
+
+      submitBtn.addEventListener('click', async () => {
+        if (!selectedScore) return;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving…';
+        await supabase.from('ratings').upsert(
+          { user_id: userId, log_id: logId, score: selectedScore },
+          { onConflict: 'user_id,log_id' }
+        );
+        await loadCommunityRating();
+        if (window.location.hash === '#rate') {
+          document.getElementById('communitySection')?.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+
+      if (window.location.hash === '#rate') {
+        setTimeout(() => document.getElementById('communitySection')?.scrollIntoView({ behavior: 'smooth' }), 400);
+      }
+    }
+
     async function loadComments() {
       const listEl = document.getElementById('commentsList');
       if (!listEl) return;
@@ -318,7 +424,7 @@ export async function loadDetail() {
     }
 
     render(log);
-    await loadComments();
+    await Promise.all([loadCommunityRating(), loadComments()]);
     setupCommentInput();
 
   } catch (err) {

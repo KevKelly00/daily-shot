@@ -131,6 +131,58 @@
     }
     .btn-ai:hover { background: var(--border); }
     .btn-ai:disabled { opacity: 0.5; cursor: default; }
+    .community-section {
+      border-top: 1px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .community-avg {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .community-avg-sub { font-size: 0.82rem; font-weight: 400; color: var(--muted); }
+    .community-stars {
+      display: flex;
+      gap: 6px;
+    }
+    .community-stars .star-wrap {
+      position: relative;
+      width: 32px; height: 32px;
+      cursor: pointer;
+    }
+    .community-stars .star-wrap svg {
+      width: 32px; height: 32px;
+      pointer-events: none;
+    }
+    .community-stars .half-l,
+    .community-stars .half-r {
+      position: absolute;
+      top: 0; height: 100%;
+      width: 50%;
+    }
+    .community-stars .half-l { left: 0; }
+    .community-stars .half-r { right: 0; }
+    .your-rating-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+    .your-rating-value { font-size: 0.9rem; color: var(--muted); margin-top: 2px; }
+    .btn-rate {
+      align-self: flex-start;
+      padding: 8px 20px;
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-rate:disabled { opacity: 0.4; cursor: not-allowed; }
     .comments-section {
       border-top: 1px solid var(--border);
       padding: 14px 16px calc(var(--nav-h) + 24px);

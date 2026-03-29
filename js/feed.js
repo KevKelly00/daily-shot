@@ -73,6 +73,7 @@ export async function loadFeed() {
         { data: beansData },
         { data: likesData },
         { data: commentsData },
+        { data: ratingsData },
       ] = await Promise.all([
         supabase.from('profiles').select('id, username, full_name, avatar_url').in('id', userIds),
         beanIds.length > 0
@@ -80,16 +81,18 @@ export async function loadFeed() {
           : Promise.resolve({ data: [] }),
         supabase.from('likes').select('log_id, user_id').in('log_id', logIds),
         supabase.from('comments').select('log_id').in('log_id', logIds),
+        supabase.from('ratings').select('log_id, score').in('log_id', logIds),
       ]);
 
-      const profileMap     = {};
-      const beanMap        = {};
-      const likeCountMap   = {};
+      const profileMap      = {};
+      const beanMap         = {};
+      const likeCountMap    = {};
       const commentCountMap = {};
-      const userLikedSet   = new Set();
+      const avgRatingMap    = {};
+      const userLikedSet    = new Set();
 
-      (profiles    || []).forEach(p => { profileMap[p.id]  = p; });
-      (beansData   || []).forEach(b => { beanMap[b.id]     = b; });
+      (profiles    || []).forEach(p => { profileMap[p.id] = p; });
+      (beansData   || []).forEach(b => { beanMap[b.id]    = b; });
       (likesData   || []).forEach(l => {
         likeCountMap[l.log_id] = (likeCountMap[l.log_id] || 0) + 1;
         if (l.user_id === userId) userLikedSet.add(l.log_id);
@@ -98,13 +101,24 @@ export async function loadFeed() {
         commentCountMap[c.log_id] = (commentCountMap[c.log_id] || 0) + 1;
       });
 
-      logs.forEach(log => renderCard(log, list, profileMap, beanMap, likeCountMap, commentCountMap, userLikedSet));
+      // Compute avg rating per log
+      const ratingAccum = {};
+      (ratingsData || []).forEach(r => {
+        if (!ratingAccum[r.log_id]) ratingAccum[r.log_id] = { sum: 0, count: 0 };
+        ratingAccum[r.log_id].sum   += parseFloat(r.score);
+        ratingAccum[r.log_id].count += 1;
+      });
+      Object.entries(ratingAccum).forEach(([id, { sum, count }]) => {
+        avgRatingMap[id] = { avg: (sum / count).toFixed(1), count };
+      });
+
+      logs.forEach(log => renderCard(log, list, profileMap, beanMap, likeCountMap, commentCountMap, userLikedSet, avgRatingMap));
 
       offset  += logs.length;
       hasMore  = logs.length === PAGE;
     }
 
-    function renderCard(log, container, profileMap, beanMap, likeCountMap, commentCountMap, userLikedSet) {
+    function renderCard(log, container, profileMap, beanMap, likeCountMap, commentCountMap, userLikedSet, avgRatingMap) {
       const profile       = profileMap[log.user_id] || {};
       const username      = profile.username || profile.full_name || 'Barista';
       const isOwn         = log.user_id === userId;
@@ -114,6 +128,7 @@ export async function loadFeed() {
       const liked         = userLikedSet.has(log.id);
       const likeCount     = likeCountMap[log.id]    || 0;
       const commentCount  = commentCountMap[log.id] || 0;
+      const ratingInfo    = avgRatingMap?.[log.id];
 
       const card = document.createElement('div');
       card.className = 'brew-card';
@@ -147,6 +162,7 @@ export async function loadFeed() {
             ${commentIcon}
             <span>${commentCount}</span>
           </button>
+          ${ratingInfo ? `<span class="card-avg-rating" data-id="${esc(log.id)}">★ ${ratingInfo.avg} <span style="color:var(--muted);font-weight:400">(${ratingInfo.count})</span></span>` : ''}
         </div>`;
 
       if (log.log_type === 'beans') {
@@ -220,6 +236,15 @@ export async function loadFeed() {
         commentBtn.addEventListener('click', e => {
           e.stopPropagation();
           window.location.href = `/log-detail.html?id=${log.id}#comments`;
+        });
+      }
+
+      const avgRatingEl = card.querySelector('.card-avg-rating');
+      if (avgRatingEl) {
+        avgRatingEl.style.cursor = 'pointer';
+        avgRatingEl.addEventListener('click', e => {
+          e.stopPropagation();
+          window.location.href = `/log-detail.html?id=${log.id}#rate`;
         });
       }
     }
