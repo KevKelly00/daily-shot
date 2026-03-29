@@ -108,11 +108,11 @@
         <div class="profile-stat-num"  id="statBrews">—</div>
         <div class="profile-stat-label">Brews</div>
       </div>
-      <div class="profile-stat">
+      <div class="profile-stat" onclick="showUserList('followers')">
         <div class="profile-stat-num"  id="statFollowers">—</div>
         <div class="profile-stat-label">Followers</div>
       </div>
-      <div class="profile-stat">
+      <div class="profile-stat" onclick="showUserList('following')">
         <div class="profile-stat-num"  id="statFollowing">—</div>
         <div class="profile-stat-label">Following</div>
       </div>
@@ -190,6 +190,16 @@
       Profile
     </a>
   </nav>
+
+  <div class="user-list-overlay" id="userListOverlay">
+    <div class="user-list-sheet">
+      <div class="user-list-header">
+        <span id="userListTitle">Followers</span>
+        <button class="user-list-close" id="userListClose">×</button>
+      </div>
+      <div class="user-list-items" id="userListItems"></div>
+    </div>
+  </div>
 
   <script type="module">
     import { loadProfile } from '/js/profile.js';

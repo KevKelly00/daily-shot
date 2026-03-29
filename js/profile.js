@@ -173,6 +173,48 @@ export async function loadProfile() {
       if (e.key === 'Enter') { e.preventDefault(); window.addBean(); }
     });
 
+    window.showUserList = async function(type) {
+      const overlay  = document.getElementById('userListOverlay');
+      const title    = document.getElementById('userListTitle');
+      const itemsEl  = document.getElementById('userListItems');
+      title.textContent = type === 'followers' ? 'Followers' : 'Following';
+      itemsEl.innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
+      overlay.classList.add('open');
+
+      const col   = type === 'followers' ? 'follower_id'  : 'following_id';
+      const match = type === 'followers' ? 'following_id' : 'follower_id';
+      const { data: rows } = await supabase.from('follows').select(col).eq(match, user.id);
+      const ids = (rows || []).map(r => r[col]);
+
+      if (!ids.length) {
+        itemsEl.innerHTML = `<div class="empty-state" style="padding:32px 24px"><p>${type === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'}</p></div>`;
+        return;
+      }
+
+      const { data: profiles } = await supabase.from('profiles').select('id, username, full_name, avatar_url').in('id', ids);
+      itemsEl.innerHTML = '';
+      (profiles || []).forEach(p => {
+        const name = p.full_name || p.username || 'Barista';
+        const item = document.createElement('div');
+        item.className = 'user-list-item';
+        item.innerHTML = `
+          <img src="${escHtml(p.avatar_url || '')}" alt="" onerror="this.style.background='var(--border)';this.removeAttribute('src')" />
+          <div>
+            <div class="user-list-item-name">${escHtml(name)}</div>
+            ${p.username ? `<div class="user-list-item-username">@${escHtml(p.username)}</div>` : ''}
+          </div>`;
+        item.addEventListener('click', () => { overlay.classList.remove('open'); window.location.href = `/user.html?id=${p.id}`; });
+        itemsEl.appendChild(item);
+      });
+    };
+
+    document.getElementById('userListClose').addEventListener('click', () => {
+      document.getElementById('userListOverlay').classList.remove('open');
+    });
+    document.getElementById('userListOverlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+    });
+
     await fetchProfile();
     await fetchBeans();
 
