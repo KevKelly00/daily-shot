@@ -45,12 +45,13 @@ function loadCache(userId) {
 }
 
 function applyCache(c) {
-  setText('statTotal',    c.statTotal);
-  setText('statWeek',     c.statWeek);
-  setText('statRating',   c.statRating);
-  setText('statAiBest',   c.statAiBest);
+  setText('statTotal',     c.statTotal);
+  setText('statWeek',      c.statWeek);
+  setText('statRating',    c.statRating);
+  setText('statAiBest',    c.statAiBest);
+  setText('statCafes',     c.statCafes);
   setText('streakCurrent', c.streakCurrent);
-  setText('streakBest',   c.streakBest);
+  setText('streakBest',    c.streakBest);
   const hint = document.getElementById('streakHint');
   if (hint && c.streakHint) hint.textContent = c.streakHint;
   const beans = document.getElementById('beansList');
@@ -78,16 +79,14 @@ async function loadStats(userId) {
     .from('coffee_logs')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .eq('log_type', 'home')
     .gte('created_at', weekAgo.toISOString());
 
   setText('statWeek', thisWeek ?? 0);
 
-  const { data: homeLogs } = await supabase
-    .from('coffee_logs')
-    .select('art_rating, ai_rating')
-    .eq('user_id', userId)
-    .eq('log_type', 'home');
+  const [{ data: homeLogs }, { data: cafeLogs }] = await Promise.all([
+    supabase.from('coffee_logs').select('art_rating, ai_rating').eq('user_id', userId).eq('log_type', 'home'),
+    supabase.from('coffee_logs').select('cafe_name').eq('user_id', userId).eq('log_type', 'cafe').not('cafe_name', 'is', null),
+  ]);
 
   let avg = '—', best = '—';
   if (homeLogs && homeLogs.length > 0) {
@@ -101,8 +100,10 @@ async function loadStats(userId) {
   setText('statRating', avg);
   setText('statAiBest', best);
 
-  // Merge into cache
-  mergeCache(userId, { statTotal: total ?? 0, statWeek: thisWeek ?? 0, statRating: avg, statAiBest: best });
+  const uniqueCafes = new Set((cafeLogs || []).map(l => l.cafe_name?.toLowerCase().trim()).filter(Boolean)).size;
+  setText('statCafes', uniqueCafes);
+
+  mergeCache(userId, { statTotal: total ?? 0, statWeek: thisWeek ?? 0, statRating: avg, statAiBest: best, statCafes: uniqueCafes });
 }
 
 async function loadStreak(userId) {
