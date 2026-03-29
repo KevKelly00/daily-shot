@@ -25,7 +25,12 @@ export async function loadProfile() {
       document.getElementById('statBrews').textContent     = brewsRes.count     ?? 0;
       document.getElementById('statFollowers').textContent = followersRes.count ?? 0;
       document.getElementById('statFollowing').textContent = followingRes.count ?? 0;
-      if (profile.avatar_url) document.getElementById('profileAvatar').src = profile.avatar_url;
+      if (profile.avatar_url) {
+        const el = document.getElementById('profileAvatar');
+        el.onload = () => el.classList.add('loaded');
+        el.src = profile.avatar_url;
+        if (el.complete) el.classList.add('loaded');
+      }
     }
 
     let pendingAvatarFile = null;
@@ -35,7 +40,11 @@ export async function loadProfile() {
       document.getElementById('editUsername').value = profile.username  || '';
       document.getElementById('editBio').value      = profile.bio       || '';
       const editAvatar = document.getElementById('editAvatar');
-      if (editAvatar) editAvatar.src = profile.avatar_url || '';
+      if (editAvatar) {
+        editAvatar.onload = () => editAvatar.classList.add('loaded');
+        editAvatar.src = profile.avatar_url || '';
+        if (editAvatar.complete) editAvatar.classList.add('loaded');
+      }
       pendingAvatarFile = null;
       document.getElementById('viewMode').style.display = 'none';
       document.getElementById('editMode').style.display = 'flex';
