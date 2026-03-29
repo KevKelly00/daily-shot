@@ -192,7 +192,7 @@ export async function loadFeed() {
           ${header}${photo}
           <div class="brew-card-footer">
             ${log.log_type === 'cafe'
-              ? `${log.cafe_name ? `<div><span class="brew-style-badge">${esc(log.cafe_name)}</span>${log.cafe_location ? ` <span style="font-size:0.78rem;color:var(--muted)">${esc(log.cafe_location)}</span>` : ''}</div>` : ''}`
+              ? `${log.cafe_name ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="brew-style-badge">${esc(log.cafe_name)}</span>${log.drink_order ? `<span class="brew-style-badge">${esc(log.drink_order)}</span>` : ''}${log.cafe_location ? `<span style="font-size:0.78rem;color:var(--muted)">${esc(log.cafe_location)}</span>` : ''}</div>` : ''}`
               : `${log.art_style ? `<div><span class="brew-style-badge">${esc(log.art_style)}</span></div>` : ''}`}
             ${roastLine}
             ${(log.art_rating || log.flavour_rating) ? `

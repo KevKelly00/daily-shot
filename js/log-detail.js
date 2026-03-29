@@ -94,8 +94,11 @@ export async function loadDetail() {
         </div>
 
         <div class="detail-body">
-          ${currentLog.log_type === 'cafe' && currentLog.cafe_location
-            ? `<div style="font-size:0.82rem;color:var(--muted)">${esc(currentLog.cafe_location)}</div>`
+          ${currentLog.log_type === 'cafe' && (currentLog.cafe_location || currentLog.drink_order)
+            ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                ${currentLog.cafe_location ? `<span style="font-size:0.82rem;color:var(--muted)">${esc(currentLog.cafe_location)}</span>` : ''}
+                ${currentLog.drink_order   ? `<span class="art-badge">${esc(currentLog.drink_order)}</span>` : ''}
+               </div>`
             : ''}
 
           ${currentLog.log_type !== 'beans' ? `<div class="detail-grid">

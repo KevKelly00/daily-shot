@@ -10,6 +10,7 @@ export async function loadLog() {
     let logType        = 'home';
     let artStyle       = null;
     let milkType       = null;
+    let drinkOrder     = null;
     let artRating      = null;
     let flavourRating  = null;
     let selectedBeanId = null;
@@ -59,8 +60,9 @@ export async function loadLog() {
       });
     }
 
-    initChips('artStyleChips', v => { artStyle = v; });
-    initChips('milkChips',     v => { milkType = v; });
+    initChips('artStyleChips',   v => { artStyle    = v; });
+    initChips('milkChips',       v => { milkType    = v; });
+    initChips('drinkOrderChips', v => { drinkOrder  = v; });
 
     // ── Bean inventory dropdowns ───────────────────────────────────────────────
     const { data: beans } = await supabase
@@ -229,6 +231,7 @@ export async function loadLog() {
           row.flavour_rating = flavourRating;
           row.cafe_name      = document.getElementById('cafeNameInput').value.trim() || null;
           row.cafe_location  = document.getElementById('cafeLocationInput').value.trim() || null;
+          row.drink_order    = drinkOrder || null;
         } else if (logType === 'beans') {
           const opt = newBagSelect.options[newBagSelect.selectedIndex];
           if (!opt || !opt.dataset.id) { showError('Please select a bean from your inventory.'); btn.disabled = false; btn.textContent = 'Save brew'; return; }
