@@ -114,6 +114,15 @@ p  { line-height: 1.6; }
   cursor: pointer;
 }
 
+/* Fade in images on load */
+img {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+img.loaded, img[src=""] {
+  opacity: 1;
+}
+
 /* ─── Bottom nav ─────────────────────────────────────────────────────────────── */
 /* ─── Shared tab bar ──────────────────────────────────────────────────────────── */
 .feed-tab {

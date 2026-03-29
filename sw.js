@@ -1,4 +1,4 @@
-const CACHE = 'crema-v3';
+const CACHE = 'crema-v4';
 
 const STATIC = [
   '/',
@@ -48,8 +48,9 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Never intercept Supabase or CDN requests
-  if (url.hostname.includes('supabase') || url.hostname.includes('jsdelivr')) {
+  // Never intercept CDN or Supabase API/auth — but DO cache Supabase storage images
+  if (url.hostname.includes('jsdelivr')) return;
+  if (url.hostname.includes('supabase') && !url.pathname.startsWith('/storage/v1/object/public/')) {
     return;
   }
 
