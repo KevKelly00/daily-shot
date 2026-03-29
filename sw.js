@@ -1,4 +1,4 @@
-const CACHE = 'crema-v2';
+const CACHE = 'crema-v3';
 
 const STATIC = [
   '/',
