@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Mockup</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    .tile {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .tile-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 12px;
+    }
+
+    /* Streak */
+    .streak-body {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .streak-main {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .streak-num {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+      color: var(--text);
+    }
+    .streak-unit {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .streak-best {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: right;
+    }
+    .streak-best strong { color: var(--text); }
+    .streak-flame { font-size: 2rem; line-height: 1; }
+
+    /* Beans */
+    .bean-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .bean-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .bean-row:first-child { padding-top: 0; }
+    .bean-name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 12px;
+    }
+    .bean-age {
+      font-size: 0.78rem;
+      font-weight: 600;
+      white-space: nowrap;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: var(--bg);
+    }
+    .bean-age.fresh   { color: #6b7280; }
+    .bean-age.peak    { color: #16a34a; }
+    .bean-age.old     { color: #d97706; }
+
+    /* AI high score */
+    .ai-score-body {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .ai-score-num {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+      color: var(--text);
+    }
+    .ai-score-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .ai-score-label {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+
+    /* page layout */
+    .dash-greeting {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+    }
+    .dash-greeting span { color: var(--muted); font-weight: 400; }
+    .page { display: flex; flex-direction: column; gap: 12px; }
+  </style>
+</head>
+<body>
+
+  <nav class="topnav">
+    <span class="topnav-logo">crema</span>
+    <img class="topnav-avatar" src="" alt=""
+      style="background:var(--border)" />
+  </nav>
+
+  <main class="page">
+
+    <div class="dash-greeting">Morning, Kevin ☕</div>
+
+    <!-- Stats row -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Home brews</div>
+        <div class="stat-value">142</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">This week</div>
+        <div class="stat-value">6</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg art rating</div>
+        <div class="stat-value">4.2</div>
+        <div class="stat-sub">Home pours only</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">AI high score</div>
+        <div class="stat-value">4.5</div>
+        <div class="stat-sub">Personal best</div>
+      </div>
+    </div>
+
+    <!-- Streak -->
+    <div class="tile">
+      <div class="tile-label">Brew streak</div>
+      <div class="streak-body">
+        <div>
+          <div class="streak-main">
+            <div class="streak-num">5</div>
+            <div class="streak-unit">days</div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:4px">Keep it up — don't break the streak!</div>
+        </div>
+        <div style="text-align:right">
+          <div class="streak-flame">🔥</div>
+          <div class="streak-best" style="margin-top:4px">Best <strong>12</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Beans -->
+    <div class="tile">
+      <div class="tile-label">Beans in rotation</div>
+      <div class="bean-row">
+        <div class="bean-name">Ethiopia Yirgacheffe — Has Bean</div>
+        <div class="bean-age peak">14 days</div>
+      </div>
+      <div class="bean-row">
+        <div class="bean-name">Colombia Huila — Origin</div>
+        <div class="bean-age fresh">5 days</div>
+      </div>
+      <div class="bean-row">
+        <div class="bean-name">Monmouth Espresso Blend</div>
+        <div class="bean-age old">31 days</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- note: colours for reference -->
+  <!-- fresh = <7 days grey, peak = 7–21 days green, old = >21 days amber -->
+
+</body>
+</html>
