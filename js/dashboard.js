@@ -1,9 +1,15 @@
 import { supabase, requireAuth } from './auth.js';
 import { esc } from './utils.js';
 
+const CACHE_KEY = 'crema_dashboard_cache';
+
 export async function loadDashboard() {
   const session = await requireAuth();
   const userId = session.user.id;
+
+  // Show cached data instantly if available
+  const cached = loadCache(userId);
+  if (cached) applyCache(cached);
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -29,8 +35,35 @@ export async function loadDashboard() {
   ]);
 }
 
+function loadCache(userId) {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    return obj.userId === userId ? obj : null;
+  } catch { return null; }
+}
+
+function applyCache(c) {
+  setText('statTotal',    c.statTotal);
+  setText('statWeek',     c.statWeek);
+  setText('statRating',   c.statRating);
+  setText('statAiBest',   c.statAiBest);
+  setText('streakCurrent', c.streakCurrent);
+  setText('streakBest',   c.streakBest);
+  const hint = document.getElementById('streakHint');
+  if (hint && c.streakHint) hint.textContent = c.streakHint;
+  const beans = document.getElementById('beansList');
+  if (beans && c.beansHtml) beans.innerHTML = c.beansHtml;
+}
+
+function saveCache(userId, data) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ userId, ...data }));
+  } catch {}
+}
+
 async function loadStats(userId) {
-  // Home brews total
   const { count: total } = await supabase
     .from('coffee_logs')
     .select('*', { count: 'exact', head: true })
@@ -39,7 +72,6 @@ async function loadStats(userId) {
 
   setText('statTotal', total ?? 0);
 
-  // This week home brews
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
   const { count: thisWeek } = await supabase
@@ -51,31 +83,29 @@ async function loadStats(userId) {
 
   setText('statWeek', thisWeek ?? 0);
 
-  // Avg art rating + AI high score — home only
   const { data: homeLogs } = await supabase
     .from('coffee_logs')
     .select('art_rating, ai_rating')
     .eq('user_id', userId)
     .eq('log_type', 'home');
 
+  let avg = '—', best = '—';
   if (homeLogs && homeLogs.length > 0) {
     const rated = homeLogs.filter(l => l.art_rating != null);
-    const avg = rated.length
+    avg = rated.length
       ? (rated.reduce((s, l) => s + parseFloat(l.art_rating), 0) / rated.length).toFixed(1)
       : '—';
-    setText('statRating', avg);
-
     const aiScores = homeLogs.map(l => l.ai_rating).filter(Boolean);
-    const best = aiScores.length ? Math.max(...aiScores.map(parseFloat)).toFixed(1) : '—';
-    setText('statAiBest', best);
-  } else {
-    setText('statRating', '—');
-    setText('statAiBest', '—');
+    best = aiScores.length ? Math.max(...aiScores.map(parseFloat)).toFixed(1) : '—';
   }
+  setText('statRating', avg);
+  setText('statAiBest', best);
+
+  // Merge into cache
+  mergeCache(userId, { statTotal: total ?? 0, statWeek: thisWeek ?? 0, statRating: avg, statAiBest: best });
 }
 
 async function loadStreak(userId) {
-  // Fetch all distinct brew dates (home brews only) ordered descending
   const { data: logs } = await supabase
     .from('coffee_logs')
     .select('created_at')
@@ -88,14 +118,13 @@ async function loadStreak(userId) {
     setText('streakBest', '0');
     const hint = document.getElementById('streakHint');
     if (hint) hint.textContent = 'Log your first home brew!';
+    mergeCache(userId, { streakCurrent: '0', streakBest: '0', streakHint: 'Log your first home brew!' });
     return;
   }
 
-  // Build sorted unique date strings (YYYY-MM-DD in local time)
   const dateSet = new Set(logs.map(l => toDateStr(new Date(l.created_at))));
-  const dates = [...dateSet].sort().reverse(); // most recent first
+  const dates = [...dateSet].sort().reverse();
 
-  // Current streak: count consecutive days from today or yesterday
   const todayStr     = toDateStr(new Date());
   const yesterdayStr = toDateStr(offsetDays(new Date(), -1));
 
@@ -112,35 +141,27 @@ async function loadStreak(userId) {
     }
   }
 
-  // Best streak: scan all dates
-  let best = 0;
-  let run  = 1;
+  let best = 0, run = 1;
   for (let i = 1; i < dates.length; i++) {
     const prev = new Date(dates[i - 1] + 'T12:00:00');
     const curr = new Date(dates[i]     + 'T12:00:00');
     const diff = Math.round((prev - curr) / 86400000);
-    if (diff === 1) {
-      run++;
-    } else {
-      best = Math.max(best, run);
-      run  = 1;
-    }
+    if (diff === 1) { run++; } else { best = Math.max(best, run); run = 1; }
   }
   best = Math.max(best, run, current);
 
+  const hintText = current === 0
+    ? 'No active streak — brew today to start one!'
+    : dates[0] === todayStr
+      ? (current >= best ? 'New personal best — keep going!' : "Keep it up — don't break the streak!")
+      : 'Brew today to keep the streak alive!';
+
   setText('streakCurrent', current);
   setText('streakBest', best + ' days');
-
   const hint = document.getElementById('streakHint');
-  if (hint) {
-    if (current === 0) {
-      hint.textContent = 'No active streak — brew today to start one!';
-    } else if (dates[0] === todayStr) {
-      hint.textContent = current >= best ? 'New personal best — keep going!' : 'Keep it up — don\'t break the streak!';
-    } else {
-      hint.textContent = 'Brew today to keep the streak alive!';
-    }
-  }
+  if (hint) hint.textContent = hintText;
+
+  mergeCache(userId, { streakCurrent: current, streakBest: best + ' days', streakHint: hintText });
 }
 
 async function loadBeans(userId) {
@@ -156,28 +177,35 @@ async function loadBeans(userId) {
 
   if (!beans || beans.length === 0) {
     container.innerHTML = '<div class="bean-empty">No beans in rotation yet.</div>';
+    mergeCache(userId, { beansHtml: '<div class="bean-empty">No beans in rotation yet.</div>' });
     return;
   }
 
   const today = new Date();
-  container.innerHTML = beans.map(bean => {
-    let daysLabel = '—';
-    let ageClass  = '';
+  const html = beans.map(bean => {
+    let daysLabel = '—', ageClass = '';
     if (bean.roast_date) {
       const days = Math.floor((today - new Date(bean.roast_date)) / 86400000);
       daysLabel = `${days}d`;
       ageClass  = days < 7 ? 'fresh' : days <= 21 ? 'peak' : 'old';
     }
-    return `
-      <div class="bean-row">
-        <div class="bean-name">${esc(bean.name)}</div>
-        <div class="bean-age ${ageClass}">${daysLabel}</div>
-      </div>`;
+    return `<div class="bean-row"><div class="bean-name">${esc(bean.name)}</div><div class="bean-age ${ageClass}">${daysLabel}</div></div>`;
   }).join('');
+
+  container.innerHTML = html;
+  mergeCache(userId, { beansHtml: html });
+}
+
+function mergeCache(userId, data) {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    const existing = raw ? JSON.parse(raw) : {};
+    saveCache(userId, { ...existing, ...data });
+  } catch {}
 }
 
 function toDateStr(date) {
-  return date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+  return date.toLocaleDateString('en-CA');
 }
 
 function offsetDays(date, n) {
