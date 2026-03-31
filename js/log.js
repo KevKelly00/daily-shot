@@ -40,14 +40,32 @@ export async function loadLog() {
     window.handlePhoto = function(e) {
       const file = e.target.files[0];
       if (!file) return;
-      if (file.size > 10 * 1024 * 1024) { showError('Photo must be under 10 MB.'); return; }
-      selectedPhoto = file;
-      const preview = document.getElementById('previewImg');
-      preview.src = URL.createObjectURL(file);
-      preview.style.display = 'block';
-      document.getElementById('changePhotoBtn').style.display = 'block';
-      document.querySelector('.upload-icon').style.display = 'none';
-      document.querySelector('.upload-hint').style.display = 'none';
+      if (file.size > 30 * 1024 * 1024) { showError('Photo must be under 30 MB.'); return; }
+
+      const img = new Image();
+      img.onload = function() {
+        const MAX = 1080;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else       { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width  = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => {
+          selectedPhoto = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+          const preview = document.getElementById('previewImg');
+          preview.src = URL.createObjectURL(selectedPhoto);
+          preview.style.display = 'block';
+          document.getElementById('changePhotoBtn').style.display = 'block';
+          document.querySelector('.upload-icon').style.display = 'none';
+          document.querySelector('.upload-hint').style.display = 'none';
+        }, 'image/jpeg', 0.85);
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(file);
     };
 
     // ── Chips ──────────────────────────────────────────────────────────────────
