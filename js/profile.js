@@ -1,4 +1,5 @@
 import { supabase, requireAuth, signOut } from './auth.js';
+import { subscribeToPush, unsubscribeFromPush, isPushSubscribed } from './push.js';
 
 export async function loadProfile() {
   try {
@@ -226,6 +227,25 @@ export async function loadProfile() {
 
     await fetchProfile();
     await fetchBeans();
+
+    // Notification toggle
+    if ('Notification' in window && 'PushManager' in window) {
+      const notifBtn = document.getElementById('notifBtn');
+      notifBtn.style.display = '';
+      async function updateNotifBtn() {
+        const subscribed = await isPushSubscribed();
+        notifBtn.textContent = subscribed ? 'Turn off notifications' : 'Turn on notifications';
+      }
+      await updateNotifBtn();
+      notifBtn.addEventListener('click', async () => {
+        notifBtn.disabled = true;
+        const subscribed = await isPushSubscribed();
+        if (subscribed) { await unsubscribeFromPush(user.id); }
+        else             { await subscribeToPush(user.id); }
+        await updateNotifBtn();
+        notifBtn.disabled = false;
+      });
+    }
 
   } catch (err) {
     console.error('Profile load error:', err);

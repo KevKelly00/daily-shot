@@ -1,5 +1,6 @@
 import { supabase, requireAuth } from './auth.js';
 import { esc } from './utils.js';
+import { sendNotification } from './push.js';
 
 export async function loadLog() {
   try {
@@ -273,8 +274,22 @@ export async function loadLog() {
           row.beans = beanName;
         }
 
-        const { error } = await supabase.from('coffee_logs').insert(row);
+        const { error, data: newLog } = await supabase.from('coffee_logs').insert(row).select('id').single();
         if (error) throw error;
+
+        // Notify followers of new post (fire and forget)
+        if (logType !== 'beans') {
+          const { data: followers } = await supabase.from('follows').select('follower_id').eq('following_id', userId);
+          if (followers && followers.length > 0) {
+            const { data: poster } = await supabase.from('profiles').select('full_name, username').eq('id', userId).single();
+            const name = poster?.full_name || poster?.username || 'Someone you follow';
+            const typeLabel = logType === 'cafe' ? 'cafe visit' : 'home brew';
+            followers.forEach(f => {
+              sendNotification(f.follower_id, '☕ New post', `${name} logged a ${typeLabel}`, `/log-detail.html?id=${newLog.id}`);
+            });
+          }
+        }
+
         window.location.href = '/dashboard.html';
 
       } catch (err) {

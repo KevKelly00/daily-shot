@@ -1,4 +1,4 @@
-const CACHE = 'crema-v4';
+const CACHE = 'crema-v5';
 
 const STATIC = [
   '/',
@@ -22,6 +22,7 @@ const STATIC = [
   '/js/log-detail.js',
   '/js/profile.js',
   '/js/user.js',
+  '/js/push.js',
   '/manifest.json',
   '/icon.svg',
 ];
@@ -64,6 +65,31 @@ self.addEventListener('fetch', e => {
         return response;
       });
       return cached || network;
+    })
+  );
+});
+
+// Push notifications
+self.addEventListener('push', e => {
+  const data = e.data?.json() || {};
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'Crema', {
+      body:  data.body  || '',
+      icon:  '/icon.svg',
+      badge: '/icon.svg',
+      data:  { url: data.url || '/feed.html' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      const url = e.notification.data?.url || '/feed.html';
+      const existing = list.find(c => c.url.includes(self.location.origin));
+      if (existing) { existing.focus(); existing.navigate(url); }
+      else clients.openWindow(url);
     })
   );
 });

@@ -1,5 +1,6 @@
 import { supabase, requireAuth } from './auth.js';
 import { esc } from './utils.js';
+import { sendNotification } from './push.js';
 
 const PAGE = 30;
 
@@ -262,6 +263,13 @@ export async function loadFeed() {
         await supabase.from('likes').delete().eq('user_id', userId).eq('log_id', logId);
       } else {
         await supabase.from('likes').insert({ user_id: userId, log_id: logId });
+        // Notify post owner (skip if liking own post)
+        const { data: log } = await supabase.from('coffee_logs').select('user_id').eq('id', logId).single();
+        if (log && log.user_id !== userId) {
+          const { data: liker } = await supabase.from('profiles').select('full_name, username').eq('id', userId).single();
+          const name = liker?.full_name || liker?.username || 'Someone';
+          sendNotification(log.user_id, '❤️ New like', `${name} liked your post`, `/log-detail.html?id=${logId}`);
+        }
       }
     }
 

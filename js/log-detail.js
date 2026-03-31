@@ -1,5 +1,6 @@
 import { supabase, requireAuth } from './auth.js';
 import { esc } from './utils.js';
+import { sendNotification } from './push.js';
 
 function starsHtml(rating) {
   if (!rating) return '<span style="color:var(--muted)">Not rated</span>';
@@ -331,6 +332,11 @@ export async function loadDetail() {
           { user_id: userId, log_id: logId, score: selectedScore },
           { onConflict: 'user_id,log_id' }
         );
+        if (currentLog.user_id !== userId) {
+          const { data: rater } = await supabase.from('profiles').select('full_name, username').eq('id', userId).single();
+          const name = rater?.full_name || rater?.username || 'Someone';
+          sendNotification(currentLog.user_id, '⭐ New rating', `${name} rated your post ${selectedScore}/5`, `/log-detail.html?id=${logId}`);
+        }
         await loadCommunityRating();
         if (window.location.hash === '#rate') {
           document.getElementById('communitySection')?.scrollIntoView({ behavior: 'smooth' });
@@ -410,6 +416,11 @@ export async function loadDetail() {
         postBtn.disabled = true;
         input.disabled   = true;
         await supabase.from('comments').insert({ user_id: userId, log_id: logId, body });
+        if (currentLog.user_id !== userId) {
+          const { data: commenter } = await supabase.from('profiles').select('full_name, username').eq('id', userId).single();
+          const name = commenter?.full_name || commenter?.username || 'Someone';
+          sendNotification(currentLog.user_id, '💬 New comment', `${name}: ${body.slice(0, 60)}`, `/log-detail.html?id=${logId}#comments`);
+        }
         input.value    = '';
         postBtn.disabled = false;
         input.disabled   = false;
