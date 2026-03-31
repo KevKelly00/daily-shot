@@ -209,6 +209,18 @@ export async function loadFeed() {
       container.appendChild(card);
 
       card.querySelectorAll('[data-id]').forEach(el => {
+        let lastTap = 0;
+        el.addEventListener('touchend', e => {
+          const now = Date.now();
+          if (now - lastTap < 300) {
+            e.preventDefault();
+            const likeBtn = card.querySelector('.like-btn');
+            if (likeBtn && !likeBtn.classList.contains('liked')) toggleLike(likeBtn, log.id);
+            showHeartBurst(el);
+          } else {
+            lastTap = now;
+          }
+        });
         el.addEventListener('click', () => window.location.href = `/log-detail.html?id=${el.dataset.id}`);
       });
 
@@ -313,4 +325,18 @@ export async function loadFeed() {
     const list = document.getElementById('feedList');
     if (list) list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Couldn't load the feed.<br>Please refresh the page.</p></div>`;
   }
+}
+
+function showHeartBurst(el) {
+  const rect   = el.getBoundingClientRect();
+  const heart  = document.createElement('span');
+  heart.textContent = '❤️';
+  heart.className   = 'heart-burst';
+  heart.style.cssText = `
+    left: ${rect.left + rect.width  / 2 - 40}px;
+    top:  ${rect.top  + rect.height / 2 - 40}px;
+    position: fixed;
+  `;
+  document.body.appendChild(heart);
+  heart.addEventListener('animationend', () => heart.remove());
 }

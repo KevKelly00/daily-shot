@@ -440,6 +440,7 @@ export async function loadDetail() {
     render(log);
     await Promise.all([loadCommunityRating(), loadComments()]);
     setupCommentInput();
+    setupPhotoGestures();
 
   } catch (err) {
     console.error('Detail load error:', err);
@@ -449,4 +450,46 @@ export async function loadDetail() {
         <p>Couldn't load this brew.<br>Please go back and try again.</p>
       </div>`;
   }
+}
+
+function setupPhotoGestures() {
+  const photo = document.querySelector('.detail-photo');
+  if (!photo) return;
+
+  let initialDist = 0;
+  let currentScale = 1;
+  let zoomed = false;
+
+  function getDistance(t1, t2) {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  photo.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      initialDist = getDistance(e.touches[0], e.touches[1]);
+    }
+  }, { passive: false });
+
+  photo.addEventListener('touchmove', e => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dist = getDistance(e.touches[0], e.touches[1]);
+      currentScale = Math.max(1, Math.min(4, dist / initialDist));
+      photo.style.transition = 'none';
+      photo.style.transform  = `scale(${currentScale})`;
+      zoomed = currentScale > 1;
+    }
+  }, { passive: false });
+
+  photo.addEventListener('touchend', e => {
+    if (e.touches.length < 2 && zoomed) {
+      photo.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      photo.style.transform  = 'scale(1)';
+      currentScale = 1;
+      zoomed = false;
+    }
+  });
 }
