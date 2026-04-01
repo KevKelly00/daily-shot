@@ -1,4 +1,4 @@
-const CACHE = 'crema-v5';
+const CACHE = 'daily-shot-v5';
 
 const STATIC = [
   '/',
@@ -73,7 +73,7 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   const data = e.data?.json() || {};
   e.waitUntil(
-    self.registration.showNotification(data.title || 'Crema', {
+    self.registration.showNotification(data.title || 'Daily Shot', {
       body:  data.body  || '',
       icon:  '/icon.svg',
       badge: '/icon.svg',

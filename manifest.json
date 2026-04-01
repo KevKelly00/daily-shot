@@ -1,7 +1,7 @@
 {
-  "name": "Crema",
-  "short_name": "Crema",
-  "description": "Log and share your latte art",
+  "name": "Daily Shot",
+  "short_name": "Daily Shot",
+  "description": "Your daily shot, captured",
   "start_url": "/dashboard.html",
   "display": "standalone",
   "background_color": "#ffffff",

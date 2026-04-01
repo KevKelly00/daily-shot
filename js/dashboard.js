@@ -1,7 +1,7 @@
 import { supabase, requireAuth } from './auth.js';
 import { esc } from './utils.js';
 
-const CACHE_KEY = 'crema_dashboard_cache';
+const CACHE_KEY = 'daily_shot_dashboard_cache';
 
 export async function loadDashboard() {
   const session = await requireAuth();
