@@ -219,8 +219,10 @@ async function loadBeans(userId) {
     let daysLabel = '—', ageClass = '';
     if (bean.roast_date) {
       const days = Math.floor((today - new Date(bean.roast_date)) / 86400000);
-      daysLabel = `${days}d`;
-      ageClass  = days < 7 ? 'fresh' : days <= 21 ? 'peak' : 'old';
+      if (!isNaN(days)) {
+        daysLabel = `${days}d`;
+        ageClass  = days < 7 ? 'fresh' : days <= 21 ? 'peak' : 'old';
+      }
     }
     return `<div class="bean-row"><div class="bean-name">${esc(bean.name)}</div><div class="bean-age ${ageClass}">${daysLabel}</div></div>`;
   }).join('');

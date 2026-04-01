@@ -153,7 +153,11 @@ export async function loadProfile() {
     async function archiveBean(id) {
       const item = document.querySelector(`.bean-item[data-id="${id}"]`);
       if (item) item.style.opacity = '0.4';
-      await supabase.from('beans').update({ is_active: false }).eq('id', id);
+      const { error } = await supabase.from('beans').update({ is_active: false }).eq('id', id);
+      if (error) {
+        if (item) item.style.opacity = '1';
+        return;
+      }
       await fetchBeans();
     }
 

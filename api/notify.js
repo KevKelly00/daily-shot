@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   // Fetch all subscriptions for the target user
   const r = await fetch(
-    `${SUPABASE_URL}/rest/v1/push_subscriptions?user_id=eq.${target_user_id}&select=endpoint,p256dh,auth`,
+    `${SUPABASE_URL}/rest/v1/push_subscriptions?user_id=eq.${encodeURIComponent(target_user_id)}&select=endpoint,p256dh,auth`,
     { headers: sbHeaders }
   );
   const subs = await r.json();
@@ -45,11 +45,12 @@ export default async function handler(req, res) {
     results[i].status === 'rejected' && [404, 410].includes(results[i].reason?.statusCode)
   );
   if (expired.length > 0) {
-    await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
-      method: 'DELETE',
-      headers: { ...sbHeaders, Prefer: 'return=minimal' },
-      body: JSON.stringify(expired.map(s => s.endpoint)),
-    });
+    await Promise.all(expired.map(s =>
+      fetch(
+        `${SUPABASE_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(s.endpoint)}`,
+        { method: 'DELETE', headers: { ...sbHeaders, Prefer: 'return=minimal' } }
+      )
+    ));
   }
 
   const sent = results.filter(r => r.status === 'fulfilled').length;

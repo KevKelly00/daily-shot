@@ -281,43 +281,61 @@ export async function loadFeed() {
     }
 
     async function toggleLike(btn, logId) {
-      const isLiked   = btn.classList.contains('liked');
-      const countEl   = btn.querySelector('.like-count');
-      const newCount  = Math.max(0, parseInt(countEl.textContent) + (isLiked ? -1 : 1));
+      const isLiked  = btn.classList.contains('liked');
+      const countEl  = btn.querySelector('.like-count');
+      const newCount = Math.max(0, parseInt(countEl.textContent) + (isLiked ? -1 : 1));
 
       // Optimistic update
       btn.classList.toggle('liked', !isLiked);
       countEl.textContent = newCount;
+      btn.disabled = true;
 
-      if (isLiked) {
-        await supabase.from('likes').delete().eq('user_id', userId).eq('log_id', logId);
-      } else {
-        await supabase.from('likes').insert({ user_id: userId, log_id: logId });
-        // Notify post owner (skip if liking own post)
-        const { data: log } = await supabase.from('coffee_logs').select('user_id').eq('id', logId).single();
-        if (log && log.user_id !== userId) {
-          const { data: liker } = await supabase.from('profiles').select('full_name, username').eq('id', userId).single();
-          const name = liker?.full_name || liker?.username || 'Someone';
-          sendNotification(log.user_id, '❤️ New like', `${name} liked your post`, `/log-detail.html?id=${logId}`);
+      try {
+        if (isLiked) {
+          const { error } = await supabase.from('likes').delete().eq('user_id', userId).eq('log_id', logId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('likes').insert({ user_id: userId, log_id: logId });
+          if (error) throw error;
+          // Notify post owner (skip if liking own post)
+          const { data: log } = await supabase.from('coffee_logs').select('user_id').eq('id', logId).single();
+          if (log && log.user_id !== userId) {
+            const { data: liker } = await supabase.from('profiles').select('full_name, username').eq('id', userId).single();
+            const name = liker?.full_name || liker?.username || 'Someone';
+            sendNotification(log.user_id, '❤️ New like', `${name} liked your post`, `/log-detail.html?id=${logId}`);
+          }
         }
+      } catch {
+        // Rollback optimistic update on failure
+        btn.classList.toggle('liked', isLiked);
+        countEl.textContent = parseInt(countEl.textContent) + (isLiked ? 1 : -1);
+      } finally {
+        btn.disabled = false;
       }
     }
 
     async function toggleFollow(btn, targetId) {
       btn.disabled = true;
       const isFollowing = follows.has(targetId);
-      if (isFollowing) {
-        await supabase.from('follows').delete().eq('follower_id', userId).eq('following_id', targetId);
-        follows.delete(targetId);
-        btn.textContent = 'Follow';
-        btn.classList.remove('following');
-      } else {
-        await supabase.from('follows').insert({ follower_id: userId, following_id: targetId });
-        follows.add(targetId);
-        btn.textContent = 'Following';
-        btn.classList.add('following');
+      try {
+        if (isFollowing) {
+          const { error } = await supabase.from('follows').delete().eq('follower_id', userId).eq('following_id', targetId);
+          if (error) throw error;
+          follows.delete(targetId);
+          btn.textContent = 'Follow';
+          btn.classList.remove('following');
+        } else {
+          const { error } = await supabase.from('follows').insert({ follower_id: userId, following_id: targetId });
+          if (error) throw error;
+          follows.add(targetId);
+          btn.textContent = 'Following';
+          btn.classList.add('following');
+        }
+      } catch {
+        // Leave button in original state on failure
+      } finally {
+        btn.disabled = false;
       }
-      btn.disabled = false;
     }
 
     window.switchTab = function(t) {

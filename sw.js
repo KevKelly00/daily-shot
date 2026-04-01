@@ -1,4 +1,4 @@
-const CACHE = 'daily-shot-v5';
+const CACHE = 'daily-shot-v6';
 
 const STATIC = [
   '/',

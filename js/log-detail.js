@@ -328,10 +328,15 @@ export async function loadDetail() {
         if (!selectedScore) return;
         submitBtn.disabled = true;
         submitBtn.textContent = 'Saving…';
-        await supabase.from('ratings').upsert(
+        const { error: ratingError } = await supabase.from('ratings').upsert(
           { user_id: userId, log_id: logId, score: selectedScore },
           { onConflict: 'user_id,log_id' }
         );
+        if (ratingError) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = myRating ? 'Update rating' : 'Submit rating';
+          return;
+        }
         if (currentLog.user_id !== userId) {
           const { data: rater } = await supabase.from('profiles').select('full_name, username').eq('id', userId).single();
           const name = rater?.full_name || rater?.username || 'Someone';
@@ -396,7 +401,9 @@ export async function loadDetail() {
         const delBtn = item.querySelector('.comment-delete');
         if (delBtn) {
           delBtn.addEventListener('click', async () => {
-            await supabase.from('comments').delete().eq('id', c.id);
+            delBtn.disabled = true;
+            const { error } = await supabase.from('comments').delete().eq('id', c.id);
+            if (error) { delBtn.disabled = false; return; }
             loadComments();
           });
         }
@@ -415,13 +422,20 @@ export async function loadDetail() {
         if (!body) return;
         postBtn.disabled = true;
         input.disabled   = true;
-        await supabase.from('comments').insert({ user_id: userId, log_id: logId, body });
+        const { error } = await supabase.from('comments').insert({ user_id: userId, log_id: logId, body });
+        if (error) {
+          postBtn.disabled = false;
+          input.disabled   = false;
+          postBtn.textContent = 'Failed';
+          setTimeout(() => { postBtn.textContent = 'Post'; }, 2000);
+          return;
+        }
         if (currentLog.user_id !== userId) {
           const { data: commenter } = await supabase.from('profiles').select('full_name, username').eq('id', userId).single();
           const name = commenter?.full_name || commenter?.username || 'Someone';
           sendNotification(currentLog.user_id, '💬 New comment', `${name}: ${body.slice(0, 60)}`, `/log-detail.html?id=${logId}#comments`);
         }
-        input.value    = '';
+        input.value      = '';
         postBtn.disabled = false;
         input.disabled   = false;
         input.focus();
